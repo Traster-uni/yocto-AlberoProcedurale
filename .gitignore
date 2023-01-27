@@ -30,3 +30,21 @@
 *.exe
 *.out
 *.app
+
+# yocto
+bin
+build
+out
+/*.vscode/
+/*.idea
+/*.hdr
+/*.exr
+/*.png
+/*.jpg
+
+tests/renderings/*.png
+tests/renderings/*.hdr
+tests1/
+.vs
+testsr/
+scripts/sync_yocto.sh
