@@ -1,0 +1,89 @@
+v = treenodes
+s = attraction attractionPoints
+N = insieme di attractionPoints
+T = insieme di treenodes
+p = punto
+S = 
+
+Funzione: 
+    S(v) = INPUT: un punto vec3f
+           OUTPUT: insieme di punti di attrazione s limitrofi che influenzano la crescita del nodo v
+    d(a,b) = presi due punt a e b, ritorna la distanza di Eulero
+    di(s: attractionPoint, v: treeNode) = radius of influence, ritorna la massima distanza fra s e v tale che s sia in S(v) 
+    dk(s: attractionPoint, v: treeNode) = kill distance, se esiste un v in T tale che d(s, v) < dk, allora s viene rimosso
+    D(v1, v2) = ritorna il vettore definito dai due nodi v1 , v2 (distanza tra due nodi consecutivi)
+
+BASE STRUCTS:
+struct treeNode{
+    vec3f node;
+	treeNode *father_ptr;
+    array<vec3f*> neighbours[];
+	int numBranches; \\ definisce il numero di figli che può ancora generare
+	bool fertile;
+	vec3f direction;
+}
+
+struct treeCrown{
+    array<vec3f> attractionPointsArray;
+    int attractionPointsSize;
+    string treeCrownShape;				// modello blender
+    string distribution;
+	float radiusInfluence;
+    float killDistance;
+	int maxBranches; \\ numero massimo di figli che un branch può generare
+}
+
+struct treeNodesContainer{
+    array<treeNode> treeNodesArray;    
+    vec3f distance;
+	// directory modello 
+	// directory texture
+}
+
+\\ attractionPoint -> se un influencePoint è nell'area di un treenode -> influencePoint 
+
+FUNCTIONS:
+
+array<vec3f> findInfluenceSet(treeNodesArray: array<vec3f>, attractionPointsArray: array<vec3f>, radiusInfluence: float, killDistance: float){
+    array<vec3f> influencePointsArray[]; \\ closest
+	array<int> influenceIndexArray[]; \\ closest_index
+	array<float> distancesArray
+    for ap,i in enumerate(attractionPointsArray){
+		double d = sqr(pow((x1 - x2), 2) + pow((y1 - y2),2) + pow((z1 - z2), 2), 2)
+        
+		if (killDistance < d && d < radiusInfluence){
+            influencePointsArray.append(ap);
+			distancesArray.append(d);
+			influenceIndexArray.append(i);
+        }
+	}
+    return influencePointsArray, influenceIndexArray, distancesArray;
+}
+
+array<int> sortInfluenceSet(*influencePointsArray: array<vec3f>, *influenceIndexArray: array<int>, *distancesArray: array<float>){
+    array<int> indexes[];
+    // ordina in modo crescente gli indici di influenceArray
+	// ordina in ordine crescente influenceArray;
+	// ordina in modo coereteme all'ordine di influenceArray, distanceArray.
+    return;
+} // genera ordered_attr[] e ordered_closest[]
+
+vec3f generateNewTreeNode(parentNode: vec3f, Tree: treeNodeContainer){
+	treeNode newBorn;
+	\\ copy attributes of parentNode and update them for the newBorn
+	\\ data la direzione del parent genera il punto nello spazio
+	\\ aggiunge il newborn a TreeNodeContainer
+}
+
+void removeAttractionPoints(newBorn: treeNode, crown: treeCrown){
+	array<vec3f*> neighbours_influence = newBorn.father_ptr.neighbours; \\array di puntatori
+	float kd = crown.killDistance;
+	
+	for n in neighbours_influence:
+		float d = \\calcola distanza da n a newBorn.node
+		if d < kd :
+			free(neighbours_influence[n]);
+}
+
+float distance(s: vec3f, d: vec3f);
+
