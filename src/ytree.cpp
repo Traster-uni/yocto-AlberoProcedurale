@@ -36,7 +36,7 @@ void run(const vector<string>& args) {
   //
   auto params      = trace_params{};
   // parse command line
-  auto cli = make_cli("ytrace", "render with raytracing");
+  auto cli = make_cli("ytree", "render a procedural tree with raytracing");
   add_option(cli, "scene", scenename, "scene filename");
   add_option(cli, "output", outname, "output filename");
   add_option(cli, "params", paramsname, "params filename");
@@ -126,7 +126,7 @@ void run(const vector<string>& args) {
   print_info("uniform seeding: {}, no random seed -> 58380", seedrnd);
   crown.attractionPointsArray = populateSphere(stoi(num_attrPoint), seedrnd);
 //  for (auto i : range(crown.attractionPointsArray.size())){
-//    print_info("vec3f= {}, {}, {}", rdmCrown[i].x, rdmCrown[i].y, rdmCrown[i].z);
+//    print_info("vec3f= {}, {}, {}", crown.attractionPointsArray[i].x, crown.attractionPointsArray[i].y, crown.attractionPointsArray[i].z);
 //  }
 
   float ModelScale = 0.25;
@@ -143,13 +143,14 @@ void run(const vector<string>& args) {
   }
 
   auto bounding_sphere = make_sphere(1, 1, 1);
+  scene.shapes.push_back(bounding_sphere);
   instance_data boundingSphereInstance = {frame3f{{ModelScale,0,0},
                                               {0,ModelScale,0},
                                               {0,0,ModelScale},
-                                              {0,0,0}}, 3};
+                                              {0,0,0}}, 3, 3};
   crown.shapeIndex = &bounding_sphere;
-  scene.shapes.push_back(bounding_sphere);
   scene.instances.push_back(boundingSphereInstance);
+  print_info("bounding sphere is in scene");
 
   // TREE
 //  auto origin = treeNode{floorPos, NULL, 1, true};

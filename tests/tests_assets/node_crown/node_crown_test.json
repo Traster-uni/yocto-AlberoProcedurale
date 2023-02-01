@@ -60,6 +60,12 @@
       "color": [1, 1, 1],
       "color_tex": 2,
       "type": "matte"
+    },
+    {
+      "name": "boundingBox",
+      "color": [0,0,0],
+      "color_tex": 0,
+      "type" : "matte"
     }
   ],
   "shapes": [
