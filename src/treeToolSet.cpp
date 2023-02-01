@@ -17,6 +17,7 @@ typedef struct treeNode {
   // singolo nodo dell'albero
   vec3f     pos;        // coordinate spaziali del nodo
   treeNode* father_ptr;  // puntatore al treeNode padre
+  float trunkDiameter; // Diametro del tronco sul punto.
   int   numBranches;  // definisce il numero di figli che può ancora generare
   bool  fertile;      // definisce se il nodo è fertile o meno
   // direzione implementabile come prodotto scalare di un vettore direzione dato
@@ -67,6 +68,7 @@ int randomSeed(bool random, int interval_start, int interval_end) {
     }
 }
 
+
 vector<vec3f> populateSphere(int num_points, int seed) {
   auto rng = make_rng(seed); // seed the generator
   vector<vec3f> rdmPoints_into_sphere;
@@ -75,6 +77,33 @@ vector<vec3f> populateSphere(int num_points, int seed) {
   }
   return rdmPoints_into_sphere;
 }
+
+
+float scaleTrunkDiameter(float previousDiameter, string treeName){
+  /*  Scala secondo ona percentuale fissa il diametro di ogni treeNode
+   *  Imposta un rateo per tipologia di albero
+   */
+  if (treeName == "default") {
+        float scale = 0.01;
+        if (previousDiameter > 0){
+          float newDiameter;
+          newDiameter = previousDiameter-(previousDiameter*scale);
+          return newDiameter;
+        }
+  }
+
+  if (treeName == "tree2") {
+        float value = 0.5;
+        if (previousDiameter > 0){
+         float newDiameter;
+         newDiameter = previousDiameter-value; //diametro scalato di una quantita fissa
+         return newDiameter;
+        }
+  }
+
+  return -1; // treetype not defined lancia un errore
+}
+
 
 vec3f populateMash(); //TODO: SAMPLE MASH
 
@@ -116,7 +145,7 @@ vec3f populateMash(); //TODO: SAMPLE MASH
 
 // SPATIAL COLONIZATION FUNCTIONS
 auto findInfluenceSet(vec3f current_node, attractionPoints& treeCrown, influenceData& data) {
-  auto radiusInfluence       = treeCrown.radiusInfluence;
+  auto radiusInfluence = treeCrown.radiusInfluence;
   auto attractionPointsArray = treeCrown.attractionPointsArray;
 
   data = {current_node};
@@ -216,10 +245,44 @@ auto deleteAttractionPoints(influenceData& influenceSet, attractionPoints& treeC
 // quicksort code from:
 // https://www.geeksforgeeks.org/cpp-program-for-quicksort/ adapted to sort
 // influence points by distance from reference tree node
-void swap(vector<float>& array, int index1, int index2) {
+template <typename T>
+void swap(vector<T>& array, int index1, int index2) {
   auto a        = array[index1];
   array[index1] = array[index2];
   array[index2] = a;
+}
+
+
+auto partition_vec3f(vector<vec3f>& arrVec3f, int start, int end) {
+  float pivot = arrVec3f[start].y;
+  int   count = 0;
+  for (int i = start + 1; i <= end; i++) {
+        if (arrVec3f[i].y <= pivot) count++;
+  }
+  // Giving pivot element its correct position
+  int pivotIndex = start + count;
+  swap(arrVec3f, pivotIndex, start);
+  // Sorting left and right parts of the pivot element
+  int i = start, j = end;
+  while (i < pivotIndex && j > pivotIndex) {
+        while (arrVec3f[i].y <= pivot) { i++;}
+        while (arrVec3f[j].y > pivot) { j--; }
+
+        if (i < pivotIndex && j > pivotIndex) {
+            swap(arrVec3f, i++, j--);
+        }
+  }
+  return pivotIndex;
+}
+
+
+auto quicksort_vec3f(vector<vec3f>& vec, int start, int end) {
+  if (start >= end) return;
+  // partitioning the array
+  auto p = partition_vec3f(vec, start, end);
+  cout << p << endl;
+  quicksort_vec3f(vec, start, p - 1);  // Sorting the left part
+  quicksort_vec3f(vec, p + 1, end);    // Sorting the right part
 }
 
 
@@ -241,12 +304,8 @@ auto partition_InfluenceSet(influenceData& influence, int start, int end) {
   // Sorting left and right parts of the pivot element
   int i = start, j = end;
   while (i < pivotIndex && j > pivotIndex) {
-    while (distancesArray[i] <= pivot) {
-      i++;
-    }
-    while (distancesArray[j] > pivot) {
-      j--;
-    }
+    while (distancesArray[i] <= pivot) { i++; }
+    while (distancesArray[j] > pivot) { j--; }
 
     if (i < pivotIndex && j > pivotIndex) {
       swap(distancesArray, i++, j--);

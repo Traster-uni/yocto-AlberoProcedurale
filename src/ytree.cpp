@@ -33,6 +33,8 @@ void run(const vector<string>& args) {
   //custom
   auto rnd_input = false;
   auto num_attrPoint = ""s;
+  auto treeType = ""s;
+
   //
   auto params      = trace_params{};
   // parse command line
@@ -63,6 +65,7 @@ void run(const vector<string>& args) {
   // custom
   add_option(cli, "random", rnd_input, "set true to generate a random seed for attraction points");
   add_option(cli, "numattr", num_attrPoint, "define the number of attraction point to generate");
+  add_option(cli, "tree", treeType, "define type of tree");
 
   //
   parse_cli(cli, args);
@@ -125,9 +128,12 @@ void run(const vector<string>& args) {
   auto seedrnd = randomSeed(rnd_input, 0, 100000);
   print_info("uniform seeding: {}, no random seed -> 58380", seedrnd);
   crown.attractionPointsArray = populateSphere(stoi(num_attrPoint), seedrnd);
-//  for (auto i : range(crown.attractionPointsArray.size())){
-//    print_info("vec3f= {}, {}, {}", crown.attractionPointsArray[i].x, crown.attractionPointsArray[i].y, crown.attractionPointsArray[i].z);
-//  }
+  quicksort_vec3f(crown.attractionPointsArray, 0, crown.attractionPointsSize);
+  for (auto i : range(crown.attractionPointsArray.size())){
+    print_info("s_vec3f= {}, {}, {}", crown.attractionPointsArray[i].x, crown.attractionPointsArray[i].y, crown.attractionPointsArray[i].z);
+  }
+  auto minYvec3f = crown.attractionPointsArray[0].y;
+  print_info("minYvec3f= {}", minYvec3f);
 
   float ModelScale = 0.25;
   auto floorPos = scene.instances[0].frame.o;
@@ -153,56 +159,30 @@ void run(const vector<string>& args) {
   print_info("bounding sphere is in scene");
 
   // TREE
-//  auto origin = treeNode{floorPos, NULL, 1, true};
-//  auto  treeNodeInstance = instance_data{frame3f{{ModelScale,0,0},
-//                                            {0,ModelScale,0},
-//                                            {0,0,ModelScale},
-//                                            floorPos}, 2, 2};
-//  vec3f tpos = floorPos;
-//  float d = 0.05;
-//  for (auto i : range(15)){
-//    if (i == 0){
-//      tree.treeNodesArray.push_back(origin);
-//    }else {
-//      tree.treeNodesArray.push_back(treeNode{tpos, &tree.treeNodesArray[i-1], 1, true});
-//    }
-//    treeNodeInstance.frame.o = tpos;
-//    scene.instances.push_back(treeNodeInstance);
-//    tpos.z += d;
-//  }
-
-  // TODO: Itera veso l'alto con il treeNode e interrompiti quando intersechi bounding_sphere
-  // spostare questo controllodentro al for e sostituire conun while
-  // controllo intersezione con shape cubica
-  // si adatta alla shape inserita su scene
-//  bbox3f cubeShape;
-//
-//  // creo nodi nel tronco fino all'intersezione con il bbox della shape
-//  while (cubeShape.hit == false) {
-//    // name only
-//    instance_data c_instance;
-//    string        instName = "point" + to_string(i);
-//    scene.instance_names.push_back(instName);
-//    // increment
-//    treeNodeInstance.frame.o.y += radius;
-//    c_instance = {treeNodeInstance.frame, treeNodeInstance.shape,
-//        treeNodeInstance.material};
-//    // insert data
-//    scene.instances.push_back(c_instance);
-//
-//    prim_intersection intersection = intersect_quad(const ray3f& ray,
-//        const vec3f& p0, const vec3f& p1, const vec3f& p2, const vec3f& p3);
-//    // intersection ha come parametro hit (colpito)
-//  }
-
-  // iniziare a generare i punti
-  // controllo con raytracing punto shape
-  // Dichiaro tutti gli elementi di cui ho bisogno per generare ipunti
-//  treeNode  nodes;
-//  treeCrown crown;
-  // inserire radius influence killdistancee max branches ecc
-//  auto pointsInSphere = populateSphere_exclusion(radius, center, 500);
-  // center da definirequando prendo la sfera
+  auto origin = treeNode{floorPos, NULL, 1, true};
+  auto  treeNodeInstance = instance_data{frame3f{{ModelScale,0,0},
+                                            {0,ModelScale,0},
+                                            {0,0,ModelScale},
+                                            floorPos}, 2, 2};
+  vec3f tpos = floorPos;
+  tree.treeNodesArray.push_back(origin);
+  float d = 0.05;
+  bool touched = false;
+  float newDiameter;
+  int i = 1;
+  while (!touched){
+    newDiameter = scaleTrunkDiameter(tree.treeNodesArray[i-1].trunkDiameter, treeType);
+    treeNode t = {tpos, &tree.treeNodesArray[i-1], newDiameter, true};
+    print_info("diam= {}", newDiameter);
+    if (t.pos.y >= minYvec3f){
+      touched = true;
+    }
+    tree.treeNodesArray.push_back(treeNode{tpos, &tree.treeNodesArray[i-1], newDiameter, true});
+    treeNodeInstance.frame.o = tpos;
+    scene.instances.push_back(treeNodeInstance);
+    tpos.y += d;
+    i++;
+  }
 
   //////////////////////////////////////////////////////////////////////////////
 
