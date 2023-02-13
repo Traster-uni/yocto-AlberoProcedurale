@@ -122,18 +122,18 @@ void run(const vector<string>& args) {
    */
   // INSTANCES
   attractionPoints crown;
-  treeNodesContainer tree;
 
   // GENERATE THE CROWN OF ATTRACTION POINT
   auto seedrnd = randomSeed(rnd_input, 0, 100000);
-  print_info("uniform seeding: {}, no random seed -> 58380", seedrnd);
+//  print_info("uniform seeding: {}, no random seed -> 58380", seedrnd);,
   crown.attractionPointsArray = populateSphere(stoi(num_attrPoint), seedrnd);
-  quicksort_vec3f(crown.attractionPointsArray, 0, crown.attractionPointsSize);
-  for (auto i : range(crown.attractionPointsArray.size())){
-    print_info("s_vec3f= {}, {}, {}", crown.attractionPointsArray[i].x, crown.attractionPointsArray[i].y, crown.attractionPointsArray[i].z);
-  }
-  auto minYvec3f = crown.attractionPointsArray[0].y;
-  print_info("minYvec3f= {}", minYvec3f);
+  quicksort_vec3f(crown.attractionPointsArray, 0, crown.attractionPointsArray.size());
+//  for (auto i : range(crown.attractionPointsArray.size())){
+//    print_info("s_vec3f= {}, {}, {}", crown.attractionPointsArray[i].x, crown.attractionPointsArray[i].y, crown.attractionPointsArray[i].z);
+//  }
+  // TODO: sort attrPoints
+  auto minVec3f = crown.attractionPointsArray[0]; // l'attractionPoint piu' basso.
+  print_info("minYvec3f= {}, {}, {}", minVec3f.x, minVec3f.y, minVec3f.z);
 
   float ModelScale = 0.25;
   auto floorPos = scene.instances[0].frame.o;
@@ -148,40 +148,33 @@ void run(const vector<string>& args) {
     scene.instances.push_back(aP_instance);
   }
 
-  auto bounding_sphere = make_sphere(1, 1, 1);
-  scene.shapes.push_back(bounding_sphere);
-  instance_data boundingSphereInstance = {frame3f{{ModelScale,0,0},
-                                              {0,ModelScale,0},
-                                              {0,0,ModelScale},
-                                              {0,0,0}}, 3, 3};
-  crown.shapeIndex = &bounding_sphere;
-  scene.instances.push_back(boundingSphereInstance);
-  print_info("bounding sphere is in scene");
-
   // TREE
-  auto origin = treeNode{floorPos, NULL, 1, true};
-  auto  treeNodeInstance = instance_data{frame3f{{ModelScale,0,0},
+  vec3f originDir = {0, 0, ModelScale};
+  auto prevBranch = Branch{floorPos,
+      floorPos += originDir,
+      originDir,
+      NULL,
+      vector<Branch>(),
+      vector<vec3f>(),
+      0.1,
+      500,
+      true};
+  print_info("prevBranch= {}, {}, {}", prevBranch._start.x, prevBranch._start.y, prevBranch._start.z);
+  auto runningBranch = insertNewBranch(prevBranch, originDir);
+  auto branchInstanceData = instance_data{frame3f{{ModelScale,0,0},
                                             {0,ModelScale,0},
                                             {0,0,ModelScale},
                                             floorPos}, 2, 2};
-  vec3f tpos = floorPos;
-  tree.treeNodesArray.push_back(origin);
-  float d = 0.05;
-  bool touched = false;
-  float newDiameter;
-  int i = 1;
-  while (!touched){
-    newDiameter = scaleTrunkDiameter(tree.treeNodesArray[i-1].trunkDiameter, treeType);
-    treeNode t = {tpos, &tree.treeNodesArray[i-1], newDiameter, true};
-    print_info("diam= {}", newDiameter);
-    if (t.pos.y >= minYvec3f){
-      touched = true;
-    }
-    tree.treeNodesArray.push_back(treeNode{tpos, &tree.treeNodesArray[i-1], newDiameter, true});
-    treeNodeInstance.frame.o = tpos;
-    scene.instances.push_back(treeNodeInstance);
-    tpos.y += d;
-    i++;
+  print_info("runningBranch= {}, {}, {}", runningBranch._start.x, runningBranch._start.y, runningBranch._start.z);
+  while (checkHeight(runningBranch, minVec3f)){
+    // data
+    runningBranch = insertNewBranch(prevBranch, vec3f{0,0.01, 0});
+    prevBranch = runningBranch;
+    print_info("runningNode= {}, {}, {}", runningBranch._start.x, runningBranch._start.y, runningBranch._start.z);
+    // models
+    auto b_instance = branchInstanceData;
+    b_instance.frame.o = runningBranch._start;
+    scene.instances.push_back(b_instance);
   }
 
   //////////////////////////////////////////////////////////////////////////////

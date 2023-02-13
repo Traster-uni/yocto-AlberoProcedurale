@@ -1,3 +1,5 @@
+#include <iostream>
+#include <random>
 #include <string>
 #include <vector>
 
@@ -11,38 +13,28 @@ using std::vector;
 namespace yocto {
 // STRUCTS
 
-typedef struct treeNode {
-  // singolo nodo dell'albero
-  vec3f     pos;        // coordinate spaziali del nodo
-  treeNode* father_ptr;  // puntatore al treeNode padre
-  float trunkDiameter; // Diametro del tronco sul punto.
-  int   numBranches;  // definisce il numero di figli che può ancora generare
-  bool  fertile;      // definisce se il nodo è fertile o meno
-  // direzione implementabile come prodotto scalare di un vettore direzione dato
-  // dalla combinazione di due angoli randomici e la lunghezza del vettore
-} treeNode;
-
-
 typedef struct attractionPoints {
   // Conteiner per la corona di punti di attrazione
   vector<vec3f> attractionPointsArray;  // vettore di attraction points in uno spazio
-  int attractionPointsSize;   // dimensione del vettore di punti di attrazione
   string treeCrownShape;  // directoy del modello blender per la forma della chioma
-  string distribution;     // tipo di distribuzione dei punti di attrazione
   float  radiusInfluence;  // raggio di influenza di ogni punto di attrazione
   float  killDistance;     // raggio di eliminazione dei punti di influenza
   shape_data* shapeIndex; // Indice riferito al json della scena che indica la posizione del modello.
 } attractionPoints;
 
 
-typedef struct treeNodesContainer {
-  // container per i nodi dell'albero
-  vector<treeNode> treeNodesArray;  // vettore di stuct per i nodi dell'albero
-  float            distance;        // distaza fra un punto ed il suo successore
-  int              maxBranches;               // numero massimo di figli che un branch può generare
-  shape_data       shape;           // caricati in tempo di esecuzione: il vero modello
-  texture_data     texture;         // caricati in tempo di esecuzione: la vera texture
-} treeNodesContainer;
+typedef struct Branch {
+  // singolo nodo dell'albero
+  vec3f     _start;        // coordinate spaziali del nodo
+  vec3f     _end;
+  vec3f     _direction;
+  Branch*   father_ptr;  // puntatore al branch padre
+  vector<Branch> children;
+  vector<vec3f> influencePoints;
+  float trunkDiameter; // Diametro del tronco sul punto.
+  int   maxBranches;  // definisce il numero massimo di figli generabili
+  bool  fertile;      // definisce se il nodo è fertile o meno
+} Branch;
 
 
 struct influenceData {
@@ -142,6 +134,8 @@ vec3f populateMash(); //TODO: SAMPLE MASH
 
 
 // SPATIAL COLONIZATION FUNCTIONS
+bool checkHeight(Branch current, vec3f minVec) { return current._end.y < minVec.y; }
+
 auto findInfluenceSet(vec3f current_node, attractionPoints& treeCrown, influenceData& data) {
   auto radiusInfluence = treeCrown.radiusInfluence;
   auto attractionPointsArray = treeCrown.attractionPointsArray;
@@ -162,67 +156,50 @@ auto findInfluenceSet(vec3f current_node, attractionPoints& treeCrown, influence
   return data;
 }
 
+vec3f computeDirection(Branch& fatherBranch){
+  auto influ = fatherBranch.influencePoints;
+  auto fatherEnd = fatherBranch._end;
+  vec3f dirBranch;
+  for (auto i : range(influ.size())){
+    auto num = influ[i] -= fatherEnd;
+    auto denom = sqrt(sqr((influ[i].x - fatherEnd.x)) + sqr((influ[i].y - fatherEnd.y)) + sqr((influ[i].z - fatherEnd.z)));
+    dirBranch= {num.x / denom, num.y / denom, num.z / denom};
+  }
+  dirBranch.x = dirBranch.x / influ.size();
+  dirBranch.y = dirBranch.y / influ.size();
+  dirBranch.z = dirBranch.z / influ.size();
+  return dirBranch;
+}
 
-auto findDirection_random(treeNodesContainer& treeNodes, influenceData& influenceSubset, float radius){
-    /*
-     * Finds the direction of the new tree node given the closest influence point,
-     * then it scrambles its direction using the sample_sphere() function of yocto
-     * TODO: DA COMPLETARE SE NECESSARIO
-     */
-    auto treeNode = influenceSubset.reference_node;
-    auto influenceArray = influenceSubset.influencePointsArray;
-    float min_distance = radius;
-    vec3f min_attractionPoint = {0,0,0};
-    for(int i = 0; i < influenceArray.size(); i++){
-        if (influenceSubset.distances[i] < min_distance){
-            min_distance = influenceSubset.distances[i];
-            min_attractionPoint = influenceArray[i];
-        }
+bool checkFatherFertility(Branch& fBranch){
+    if (fBranch.maxBranches > fBranch.children.size()){
+        fBranch.fertile = true;
+        return true;
+    } else {
+        fBranch.fertile = false;
+        return false;
     }
-    vec3f p_d = {min_attractionPoint.x - treeNode.x, min_attractionPoint.y - treeNode.y, min_attractionPoint.z - treeNode.z};
-    return;
 }
 
 
-auto findDirection_normalized(treeNodesContainer& nodesContainer, influenceData& influenceSubset){
-    /*
-     * Finds the direction of the new tree node given n closest influence points,
-     * then normalizes the direction given the euler distances from the tree node
-     *
-     * TODO: auto rsu = sample_sphere(rand2f(rng));     // random spherical direction
-     */
-    auto treeNode = influenceSubset.reference_node;
-    auto influenceArray = influenceSubset.influencePointsArray;
-    random_device gen;
-    mt19937 rng(gen());
-    uniform_int_distribution<int> randomInt(0, influenceArray.size());
-    auto d = influenceSubset.distances[randomInt(gen)];
-    vector<vec3f> pointsArray;
-    vector<vec3f> vectorArray;
-    for(int i = 0; i < influenceArray.size(); i++){
-        if (influenceSubset.distances[i] < d){
-            pointsArray.push_back(influenceArray[i]);
-            vectorArray.push_back(vec3f {influenceArray[i].x - treeNode.x, influenceArray[i].y - treeNode.y, influenceArray[i].z - treeNode.z});
-        }
+Branch insertNewBranch(Branch& fatherBranch, vec3f direction){
+    Branch newBranch;
+    newBranch._start      = fatherBranch._end;
+    newBranch._end        = newBranch._start += direction;
+    newBranch._direction  = direction;
+    newBranch._end        = vec3f{newBranch._start.x + direction.x,
+        newBranch._start.y + direction.y, newBranch._start.z + direction.z};
+    newBranch.father_ptr  = &fatherBranch;
+    newBranch.maxBranches = fatherBranch.maxBranches - 1;
+    fatherBranch.children.push_back(newBranch);
+    if (checkFatherFertility(fatherBranch)) {
+        newBranch.fertile = true;
+    } else {
+        newBranch.fertile = false;
     }
-    vec3f sum_point_weight = {0,0,0};
-    float sum_distance_weight = 0;
-    for (int i = 0; i < pointsArray.size(); i++){
-        float sum_dis = d - influenceSubset.distances[i];
-        //sum numeratore
-        sum_point_weight.x += influenceArray[i].x * sum_dis;
-        sum_point_weight.y += influenceArray[i].y * sum_dis;
-        sum_point_weight.z += influenceArray[i].z * sum_dis;
-        //sum denominatore
-        sum_distance_weight += sum_dis;
-    }
-    vec3f final_norm = {sum_point_weight.x / sum_distance_weight,sum_point_weight.y / sum_distance_weight,sum_point_weight.z / sum_distance_weight};
-    return final_norm;
+    return newBranch;
 }
 
-auto insertNewTreeNode(vec3f direction, scene_data scene, treeNodesContainer treeNodes, treeNode father){
-    float distance_insertion = treeNodes.distance;
-} // TODO: piazza il tree node a distanza d dal nuovo nodo in nodesContainer
 
 
 auto deleteAttractionPoints(influenceData& influenceSet, attractionPoints& treeCrown){
