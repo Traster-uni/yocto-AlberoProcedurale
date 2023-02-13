@@ -33,6 +33,7 @@ void run(const vector<string>& args) {
   //custom
   auto rnd_input = false;
   auto num_attrPoint = ""s;
+  auto attraction_range = ""s;
   auto treeType = ""s;
 
   //
@@ -66,7 +67,7 @@ void run(const vector<string>& args) {
   add_option(cli, "random", rnd_input, "set true to generate a random seed for attraction points");
   add_option(cli, "numattr", num_attrPoint, "define the number of attraction point to generate");
   add_option(cli, "tree", treeType, "define type of tree");
-
+  add_option(cli, "attr_range", attraction_range, "define an attraction range for a branch");
   //
   parse_cli(cli, args);
   // load config
@@ -122,7 +123,7 @@ void run(const vector<string>& args) {
    */
   // INSTANCES
   attractionPoints crown;
-
+  vector<Branch> branchesArray;
   // GENERATE THE CROWN OF ATTRACTION POINT
   auto seedrnd = randomSeed(rnd_input, 0, 100000);
 //  print_info("uniform seeding: {}, no random seed -> 58380", seedrnd);,
@@ -142,13 +143,13 @@ void run(const vector<string>& args) {
                                                               {0,0,ModelScale},
                                                               {0,0,0}},
                                                         1, 1};
-  for (auto i : range(crown.attractionPointsArray.size())){
+  for (auto ap : crown.attractionPointsArray){
     auto aP_instance = attractionPointInstance;
-    aP_instance.frame.o = crown.attractionPointsArray[i];
+    aP_instance.frame.o = ap;
     scene.instances.push_back(aP_instance);
   }
 
-  // TREE
+  // TREE TRUNK
   vec3f originDir = {0, 0, ModelScale};
   auto prevBranch = Branch{floorPos,
       floorPos += originDir,
@@ -159,23 +160,32 @@ void run(const vector<string>& args) {
       0.1,
       500,
       true};
-  print_info("prevBranch= {}, {}, {}", prevBranch._start.x, prevBranch._start.y, prevBranch._start.z);
   auto runningBranch = insertNewBranch(prevBranch, originDir);
   auto branchInstanceData = instance_data{frame3f{{ModelScale,0,0},
                                             {0,ModelScale,0},
                                             {0,0,ModelScale},
                                             floorPos}, 2, 2};
-  print_info("runningBranch= {}, {}, {}", runningBranch._start.x, runningBranch._start.y, runningBranch._start.z);
+  branchesArray.push_back(prevBranch);
+  branchesArray.push_back(runningBranch);
+
   while (checkHeight(runningBranch, minVec3f)){
     // data
     runningBranch = insertNewBranch(prevBranch, vec3f{0,0.01, 0});
     prevBranch = runningBranch;
-    print_info("runningNode= {}, {}, {}", runningBranch._start.x, runningBranch._start.y, runningBranch._start.z);
+    branchesArray.push_back(runningBranch);
     // models
     auto b_instance = branchInstanceData;
     b_instance.frame.o = runningBranch._start;
     scene.instances.push_back(b_instance);
   }
+
+  // TREE CROWN
+  Branch endTrunk = branchesArray[branchesArray.size() - 1];
+  findInfluenceSet(endTrunk, stof(attraction_range), crown);
+  print_info("endPoint({},{},{})", endTrunk._end.x, endTrunk._end.y, endTrunk._end.z);
+//  for (auto i : endTrunk.influencePoints){
+//    print_info("InflPoints={},{},{}", i.x, i.y, i.z);
+//  }
 
   //////////////////////////////////////////////////////////////////////////////
 

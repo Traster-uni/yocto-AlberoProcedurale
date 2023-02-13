@@ -28,22 +28,14 @@ typedef struct Branch {
   vec3f     _start;        // coordinate spaziali del nodo
   vec3f     _end;
   vec3f     _direction;
-  Branch*   father_ptr;  // puntatore al branch padre
+  Branch*   father_ptr{};  // puntatore al branch padre
   vector<Branch> children;
   vector<vec3f> influencePoints;
-  float trunkDiameter; // Diametro del tronco sul punto.
-  int   maxBranches;  // definisce il numero massimo di figli generabili
-  bool  fertile;      // definisce se il nodo è fertile o meno
+  float trunkDiameter{}; // Diametro del tronco sul punto.
+  int   maxBranches{};  // definisce il numero massimo di figli generabili
+  bool  fertile{};      // definisce se il nodo è fertile o meno
 } Branch;
 
-
-struct influenceData {
-  // sottoinsieme di punti di influenza per un treeNode
-  vec3f         reference_node; // tree node a cui l'inflence set fa riferimento
-  vector<vec3f> influencePointsArray; // l'array di influence points
-  vector<int>   influencePointsIndexes; // array di indici legati agli attraction points
-  vector<float> distances; // distanze degli influencePointsArray
-};
 
 // UTIL FUNCTIONS
 
@@ -67,6 +59,7 @@ vector<vec3f> populateSphere(int num_points, int seed) {
   }
   return rdmPoints_into_sphere;
 }
+
 
 
 float scaleTrunkDiameter(float previousDiameter, string treeName){
@@ -136,24 +129,15 @@ vec3f populateMash(); //TODO: SAMPLE MASH
 // SPATIAL COLONIZATION FUNCTIONS
 bool checkHeight(Branch current, vec3f minVec) { return current._end.y < minVec.y; }
 
-auto findInfluenceSet(vec3f current_node, attractionPoints& treeCrown, influenceData& data) {
-  auto radiusInfluence = treeCrown.radiusInfluence;
+void findInfluenceSet(Branch current_branch, float radiusInfluence, attractionPoints& treeCrown) {
   auto attractionPointsArray = treeCrown.attractionPointsArray;
-
-  data = {current_node};
-
-  int i = 0;
   for (auto ap : attractionPointsArray) {
-    auto d = distance_squared(ap, current_node);
+    auto d = distance_squared(current_branch._end, ap);
 
     if (d < radiusInfluence) {
-      data.influencePointsArray.push_back(ap);
-      data.influencePointsIndexes.push_back(i);
-      data.distances.push_back(d);
+      current_branch.influencePoints.push_back(ap);
     }
-    i++;
   }
-  return data;
 }
 
 vec3f computeDirection(Branch& fatherBranch){
@@ -202,19 +186,19 @@ Branch insertNewBranch(Branch& fatherBranch, vec3f direction){
 
 
 
-auto deleteAttractionPoints(influenceData& influenceSet, attractionPoints& treeCrown){
-    auto influenceArray = influenceSet.influencePointsArray;
-    auto attractionArray = treeCrown.attractionPointsArray;
-    auto killDistance = treeCrown.killDistance;
-    auto treeNode = influenceSet.reference_node;
-    for (int i = 0; i < influenceArray.size(); i++){
-        auto d = distance_squared(treeNode, influenceArray[i]);
-        if (d <= killDistance){
-            influenceArray.erase(next(influenceArray.begin(), i));
-            attractionArray.erase(next(attractionArray.begin(), i));
-        }
-    }
-}
+//auto deleteAttractionPoints(influenceData& influenceSet, attractionPoints& treeCrown){
+//    auto influenceArray = influenceSet.influencePointsArray;
+//    auto attractionArray = treeCrown.attractionPointsArray;
+//    auto killDistance = treeCrown.killDistance;
+//    auto treeNode = influenceSet.reference_node;
+//    for (int i = 0; i < influenceArray.size(); i++){
+//        auto d = distance_squared(treeNode, influenceArray[i]);
+//        if (d <= killDistance){
+//            influenceArray.erase(next(influenceArray.begin(), i));
+//            attractionArray.erase(next(attractionArray.begin(), i));
+//        }
+//    }
+//}
 
 
 // quicksort code from:
@@ -261,41 +245,41 @@ auto quicksort_vec3f(vector<vec3f>& vec, int start, int end) {
 }
 
 
-auto partition_InfluenceSet(influenceData& influence, int start, int end) {
-  // unpack data
-  auto influencePoints = influence.influencePointsArray;
-  auto indexes         = influence.influencePointsIndexes;
-  auto distancesArray  = influence.distances;
-
-  float pivot = distancesArray[start];
-  int   count = 0;
-  // arr == distancesArray
-  for (int i = start + 1; i <= end; i++) {
-    if (distancesArray[i] <= pivot) count++;
-  }
-  // Giving pivot element its correct position
-  int pivotIndex = start + count;
-  swap(distancesArray, pivotIndex, start);
-  // Sorting left and right parts of the pivot element
-  int i = start, j = end;
-  while (i < pivotIndex && j > pivotIndex) {
-    while (distancesArray[i] <= pivot) { i++; }
-    while (distancesArray[j] > pivot) { j--; }
-
-    if (i < pivotIndex && j > pivotIndex) {
-      swap(distancesArray, i++, j--);
-    }
-  }
-  return pivotIndex;
-}
-
-
-auto quicksort_InfluenceSet(influenceData& influence, int start, int end) {
-  if (start >= end) return;
-  // partitioning the array
-  auto p = partition_InfluenceSet(influence, start, end);
-  quicksort_InfluenceSet(influence, start, p - 1);  // Sorting the left part
-  quicksort_InfluenceSet(influence, p + 1, end);    // Sorting the right part
-} // end Quicksort implementation
+//auto partition_InfluenceSet(influenceData& influence, int start, int end) {
+//  // unpack data
+//  auto influencePoints = influence.influencePointsArray;
+//  auto indexes         = influence.influencePointsIndexes;
+//  auto distancesArray  = influence.distances;
+//
+//  float pivot = distancesArray[start];
+//  int   count = 0;
+//  // arr == distancesArray
+//  for (int i = start + 1; i <= end; i++) {
+//    if (distancesArray[i] <= pivot) count++;
+//  }
+//  // Giving pivot element its correct position
+//  int pivotIndex = start + count;
+//  swap(distancesArray, pivotIndex, start);
+//  // Sorting left and right parts of the pivot element
+//  int i = start, j = end;
+//  while (i < pivotIndex && j > pivotIndex) {
+//    while (distancesArray[i] <= pivot) { i++; }
+//    while (distancesArray[j] > pivot) { j--; }
+//
+//    if (i < pivotIndex && j > pivotIndex) {
+//      swap(distancesArray, i++, j--);
+//    }
+//  }
+//  return pivotIndex;
+//}
+//
+//
+//auto quicksort_InfluenceSet(influenceData& influence, int start, int end) {
+//  if (start >= end) return;
+//  // partitioning the array
+//  auto p = partition_InfluenceSet(influence, start, end);
+//  quicksort_InfluenceSet(influence, start, p - 1);  // Sorting the left part
+//  quicksort_InfluenceSet(influence, p + 1, end);    // Sorting the right part
+//} // end Quicksort implementation
 }  // namespace yocto
 
