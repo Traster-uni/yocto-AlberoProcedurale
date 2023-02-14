@@ -33,7 +33,8 @@ void run(const vector<string>& args) {
   //custom
   auto rnd_input = false;
   auto num_attrPoint = ""s;
-  auto attraction_range = ""s;
+  auto attr_range = ""s;
+  auto kill_range = ""s;
   auto treeType = ""s;
 
   //
@@ -67,7 +68,8 @@ void run(const vector<string>& args) {
   add_option(cli, "random", rnd_input, "set true to generate a random seed for attraction points");
   add_option(cli, "numattr", num_attrPoint, "define the number of attraction point to generate");
   add_option(cli, "tree", treeType, "define type of tree");
-  add_option(cli, "attr_range", attraction_range, "define an attraction range for a branch");
+  add_option(cli, "attr_range", attr_range, "define an attraction range for a branch");
+  add_option(cli, "kill_range", kill_range, "define killing range for attraction points");
   //
   parse_cli(cli, args);
   // load config
@@ -123,31 +125,29 @@ void run(const vector<string>& args) {
    */
   // INSTANCES
   attractionPoints crown;
+  crown.radiusInfluence = stof(attr_range);
+  crown.killDistance = stof(kill_range);
   vector<Branch> branchesArray;
   // GENERATE THE CROWN OF ATTRACTION POINT
+  // seeding
   auto seedrnd = randomSeed(rnd_input, 0, 100000);
-//  print_info("uniform seeding: {}, no random seed -> 58380", seedrnd);,
+  print_info("uniform seeding: {}, no random seed -> 58380", seedrnd);
+  // genertion
   crown.attractionPointsArray = populateSphere(stoi(num_attrPoint), seedrnd);
+  // sort attraction points vertically
   quicksort_vec3f(crown.attractionPointsArray, 0, crown.attractionPointsArray.size());
-//  for (auto i : range(crown.attractionPointsArray.size())){
-//    print_info("s_vec3f= {}, {}, {}", crown.attractionPointsArray[i].x, crown.attractionPointsArray[i].y, crown.attractionPointsArray[i].z);
-//  }
-  // TODO: sort attrPoints
-  auto minVec3f = crown.attractionPointsArray[0]; // l'attractionPoint piu' basso.
+  // l'attraction Point piu' basso.
+  auto minVec3f = crown.attractionPointsArray[0];
   print_info("minYvec3f= {}, {}, {}", minVec3f.x, minVec3f.y, minVec3f.z);
-
+  // modeling for attrPoints
   float ModelScale = 0.25;
   auto floorPos = scene.instances[0].frame.o;
+  print_info("floorPos= {},{},{}", floorPos.x, floorPos.y, floorPos.z);
   auto  attractionPointInstance = instance_data{frame3f{{ModelScale,0,0},
                                                               {0,ModelScale,0},
                                                               {0,0,ModelScale},
                                                               {0,0,0}},
                                                         1, 1};
-  for (auto ap : crown.attractionPointsArray){
-    auto aP_instance = attractionPointInstance;
-    aP_instance.frame.o = ap;
-    scene.instances.push_back(aP_instance);
-  }
 
   // TREE TRUNK
   vec3f originDir = {0, 0, ModelScale};
@@ -180,12 +180,34 @@ void run(const vector<string>& args) {
   }
 
   // TREE CROWN
+  // chose the last branch of the TRUNK
   Branch endTrunk = branchesArray[branchesArray.size() - 1];
-  findInfluenceSet(endTrunk, stof(attraction_range), crown);
-  print_info("endPoint({},{},{})", endTrunk._end.x, endTrunk._end.y, endTrunk._end.z);
-//  for (auto i : endTrunk.influencePoints){
-//    print_info("InflPoints={},{},{}", i.x, i.y, i.z);
-//  }
+  findInfluenceSet(endTrunk, crown.radiusInfluence, crown);
+  auto growingBranch = insertNewBranch(endTrunk, computeDirection(endTrunk, seedrnd));
+  // find local influence set for the TRUNK
+  for (int i = 0; i < 200; i++) {
+    if (growingBranch.fertile){
+      findInfluenceSet(growingBranch, crown.radiusInfluence, crown);
+      auto dir = computeDirection(growingBranch, seedrnd);
+      print_info("direction= {},{},{}", dir.x, dir.y, dir.z);
+      growingBranch = insertNewBranch(growingBranch, dir);
+      branchesArray.push_back(growingBranch);
+      deleteAttractionPoints(growingBranch, crown);
+    } else {
+      break;
+    }
+  }
+  for ( auto b : branchesArray){  // models
+    auto b_instance    = branchInstanceData;
+    b_instance.frame.o = growingBranch._start;
+    scene.instances.push_back(b_instance);
+  }
+  for (auto ap : crown.attractionPointsArray){
+    auto aP_instance = attractionPointInstance;
+    aP_instance.frame.o = ap;
+    scene.instances.push_back(aP_instance);
+  }
+
 
   //////////////////////////////////////////////////////////////////////////////
 

@@ -129,29 +129,35 @@ vec3f populateMash(); //TODO: SAMPLE MASH
 // SPATIAL COLONIZATION FUNCTIONS
 bool checkHeight(Branch current, vec3f minVec) { return current._end.y < minVec.y; }
 
-void findInfluenceSet(Branch current_branch, float radiusInfluence, attractionPoints& treeCrown) {
+void findInfluenceSet(Branch& current_branch, float radiusInfluence, attractionPoints& treeCrown) {
   auto attractionPointsArray = treeCrown.attractionPointsArray;
   for (auto ap : attractionPointsArray) {
-    auto d = distance_squared(current_branch._end, ap);
-
-    if (d < radiusInfluence) {
+    auto d = sqrt(sqr((ap.x - current_branch._end.x)) + sqr((ap.x - current_branch._end.x)) + sqr((ap.x - current_branch._end.x)));
+    if (d <= radiusInfluence) {
       current_branch.influencePoints.push_back(ap);
     }
   }
 }
 
-vec3f computeDirection(Branch& fatherBranch){
+vec3f computeDirection(Branch& fatherBranch, uint64_t seed){
   auto influ = fatherBranch.influencePoints;
   auto fatherEnd = fatherBranch._end;
-  vec3f dirBranch;
+  cout << "145 fatherEnd: "<< fatherEnd.x << ", "<< fatherEnd.y << ", " << fatherEnd.z << endl;
+  vec3f dirBranch = fatherEnd;
+  auto rng = make_rng(seed, 1);
   for (auto i : range(influ.size())){
-    auto num = influ[i] -= fatherEnd;
-    auto denom = sqrt(sqr((influ[i].x - fatherEnd.x)) + sqr((influ[i].y - fatherEnd.y)) + sqr((influ[i].z - fatherEnd.z)));
-    dirBranch= {num.x / denom, num.y / denom, num.z / denom};
+//    auto num = influ[i] -= fatherEnd;
+//    auto denom = sqrt(sqr((influ[i].x - fatherEnd.x)) + sqr((influ[i].y - fatherEnd.y)) + sqr((influ[i].z - fatherEnd.z)));
+//    auto dot_denom = normalize(num);
+//    cout << "dot_denom " << dot_denom.x << ", "<< dot_denom.y << ", " << dot_denom.z << endl;
+//    dirBranch = dirBranch += (num / dot_denom);
+      dirBranch = dirBranch += normalize(influ[i] - fatherEnd);
   }
-  dirBranch.x = dirBranch.x / influ.size();
-  dirBranch.y = dirBranch.y / influ.size();
-  dirBranch.z = dirBranch.z / influ.size();
+//  dirBranch.x = dirBranch.x / influ.size();
+//  dirBranch.y = dirBranch.y / influ.size();
+//  dirBranch.z = dirBranch.z / influ.size();
+  dirBranch = dirBranch += rand3f(rng);
+  dirBranch = normalize(dirBranch);
   return dirBranch;
 }
 
@@ -169,7 +175,7 @@ bool checkFatherFertility(Branch& fBranch){
 Branch insertNewBranch(Branch& fatherBranch, vec3f direction){
     Branch newBranch;
     newBranch._start      = fatherBranch._end;
-    newBranch._end        = newBranch._start += direction;
+    newBranch._end        = newBranch._start += (direction *= 0.3);
     newBranch._direction  = direction;
     newBranch._end        = vec3f{newBranch._start.x + direction.x,
         newBranch._start.y + direction.y, newBranch._start.z + direction.z};
@@ -186,19 +192,18 @@ Branch insertNewBranch(Branch& fatherBranch, vec3f direction){
 
 
 
-//auto deleteAttractionPoints(influenceData& influenceSet, attractionPoints& treeCrown){
-//    auto influenceArray = influenceSet.influencePointsArray;
-//    auto attractionArray = treeCrown.attractionPointsArray;
-//    auto killDistance = treeCrown.killDistance;
-//    auto treeNode = influenceSet.reference_node;
-//    for (int i = 0; i < influenceArray.size(); i++){
-//        auto d = distance_squared(treeNode, influenceArray[i]);
-//        if (d <= killDistance){
-//            influenceArray.erase(next(influenceArray.begin(), i));
-//            attractionArray.erase(next(attractionArray.begin(), i));
-//        }
-//    }
-//}
+auto deleteAttractionPoints(Branch& current, attractionPoints& treeCrown){
+    auto attractionArray = treeCrown.attractionPointsArray;
+    auto killDistance = treeCrown.killDistance;
+    auto treeNode = current._end;
+    for (auto i : range(current.influencePoints.size())){
+        auto d = sqrt(sqr(treeNode.x - current.influencePoints[i].x) + sqr(treeNode.y - current.influencePoints[i].y) + sqr(treeNode.z - current.influencePoints[i].z));
+        if (d <= killDistance){
+            current.influencePoints.erase(next(current.influencePoints.begin(), i));
+            attractionArray.erase(next(attractionArray.begin(), i));
+        }
+    }
+}
 
 
 // quicksort code from:
@@ -239,7 +244,6 @@ auto quicksort_vec3f(vector<vec3f>& vec, int start, int end) {
   if (start >= end) return;
   // partitioning the array
   auto p = partition_vec3f(vec, start, end);
-  cout << p << endl;
   quicksort_vec3f(vec, start, p - 1);  // Sorting the left part
   quicksort_vec3f(vec, p + 1, end);    // Sorting the right part
 }
