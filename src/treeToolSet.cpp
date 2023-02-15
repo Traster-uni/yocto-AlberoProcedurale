@@ -28,9 +28,11 @@ typedef struct Branch {
   vec3f     _start;        // coordinate spaziali del nodo
   vec3f     _end;
   vec3f     _direction;
+  float     _lenght;
   Branch*   father_ptr{};  // puntatore al branch padre
   vector<Branch> children;
   vector<vec3f> influencePoints;
+  vector<int> indexesInfluence;
   float trunkDiameter{}; // Diametro del tronco sul punto.
   int   maxBranches{};  // definisce il numero massimo di figli generabili
   bool  fertile{};      // definisce se il nodo è fertile o meno
@@ -38,6 +40,16 @@ typedef struct Branch {
 
 
 // UTIL FUNCTIONS
+vec3f normalizeTree(vec3f v, float l) {
+  if (v.x == 0 && v.y == 0 && v.z == 0){ return v; // NO! bad vector!
+  } else {
+    v.x *= l;
+    v.y *= l;
+    v.z *= l;
+    return v;
+  }
+}
+
 
 int randomSeed(bool random, int interval_start, int interval_end) {
     if (!random) {
@@ -129,37 +141,42 @@ vec3f populateMash(); //TODO: SAMPLE MASH
 // SPATIAL COLONIZATION FUNCTIONS
 bool checkHeight(Branch current, vec3f minVec) { return current._end.y < minVec.y; }
 
-void findInfluenceSet(Branch& current_branch, float radiusInfluence, attractionPoints& treeCrown) {
+void findInfluenceSet(Branch& current_branch, attractionPoints& treeCrown) {
   auto attractionPointsArray = treeCrown.attractionPointsArray;
-  for (auto ap : attractionPointsArray) {
-    auto d = sqrt(sqr((ap.x - current_branch._end.x)) + sqr((ap.x - current_branch._end.x)) + sqr((ap.x - current_branch._end.x)));
+  double radiusInfluence = treeCrown.radiusInfluence;
+  for (auto ap : range(attractionPointsArray.size())) {
+//    auto d = sqrt(sqr((ap.x - current_branch._end.x)) + sqr((ap.x - current_branch._end.x)) + sqr((ap.x - current_branch._end.x)));
+    double d = distance(current_branch._end, attractionPointsArray[ap]);
     if (d <= radiusInfluence) {
-      current_branch.influencePoints.push_back(ap);
+      current_branch.influencePoints.push_back(attractionPointsArray[ap]);
+      current_branch.indexesInfluence.push_back(ap);
     }
   }
 }
 
-vec3f computeDirection(Branch& fatherBranch, uint64_t seed){
-  auto influ = fatherBranch.influencePoints;
-  auto fatherEnd = fatherBranch._end;
-  cout << "145 fatherEnd: "<< fatherEnd.x << ", "<< fatherEnd.y << ", " << fatherEnd.z << endl;
-  vec3f dirBranch = fatherEnd;
-  auto rng = make_rng(seed, 1);
-  for (auto i : range(influ.size())){
-//    auto num = influ[i] -= fatherEnd;
-//    auto denom = sqrt(sqr((influ[i].x - fatherEnd.x)) + sqr((influ[i].y - fatherEnd.y)) + sqr((influ[i].z - fatherEnd.z)));
-//    auto dot_denom = normalize(num);
-//    cout << "dot_denom " << dot_denom.x << ", "<< dot_denom.y << ", " << dot_denom.z << endl;
-//    dirBranch = dirBranch += (num / dot_denom);
-      dirBranch = dirBranch += normalize(influ[i] - fatherEnd);
+vec3f computeDirection(Branch& fatherBranch){
+  if (fatherBranch.influencePoints.size() > 0) {
+    vec3f newDir = {0, 0, 0};
+    vec3f num;
+    float denom;
+    for (auto ip : fatherBranch.influencePoints) {
+      num = ip - fatherBranch._end;
+      denom  = sqrt(dot(num, num));
+      newDir = newDir += vec3f{num.x / denom, num.y / denom, num.z / denom};
+    }
+    newDir = newDir /= fatherBranch.influencePoints.size();
+    auto newDir_norm = sqrt(dot(newDir, newDir));
+    return newDir /= newDir_norm;
   }
-//  dirBranch.x = dirBranch.x / influ.size();
-//  dirBranch.y = dirBranch.y / influ.size();
-//  dirBranch.z = dirBranch.z / influ.size();
-  dirBranch = dirBranch += rand3f(rng);
-  dirBranch = normalize(dirBranch);
-  return dirBranch;
+  return {0,0,0};
 }
+
+
+vec3f determined_direction(Branch& fatherBranch){
+  auto fatherEnd = fatherBranch._end;
+  return fatherEnd += vec3f{0, 0.15, 0.15};
+}
+
 
 bool checkFatherFertility(Branch& fBranch){
     if (fBranch.maxBranches > fBranch.children.size()){
@@ -171,14 +188,12 @@ bool checkFatherFertility(Branch& fBranch){
     }
 }
 
-
-Branch insertNewBranch(Branch& fatherBranch, vec3f direction){
+Branch insertChildBranch(Branch& fatherBranch, vec3f direction){
     Branch newBranch;
     newBranch._start      = fatherBranch._end;
-    newBranch._end        = newBranch._start += (direction *= 0.3);
-    newBranch._direction  = direction;
-    newBranch._end        = vec3f{newBranch._start.x + direction.x,
-        newBranch._start.y + direction.y, newBranch._start.z + direction.z};
+    newBranch._direction  = direction *= fatherBranch._lenght;
+    newBranch._end = newBranch._direction  += newBranch._start;
+    newBranch._lenght     = fatherBranch._lenght;
     newBranch.father_ptr  = &fatherBranch;
     newBranch.maxBranches = fatherBranch.maxBranches - 1;
     fatherBranch.children.push_back(newBranch);
@@ -192,15 +207,15 @@ Branch insertNewBranch(Branch& fatherBranch, vec3f direction){
 
 
 
-auto deleteAttractionPoints(Branch& current, attractionPoints& treeCrown){
+void deleteAttractionPoints(Branch& current, attractionPoints& treeCrown){
     auto attractionArray = treeCrown.attractionPointsArray;
     auto killDistance = treeCrown.killDistance;
-    auto treeNode = current._end;
     for (auto i : range(current.influencePoints.size())){
-        auto d = sqrt(sqr(treeNode.x - current.influencePoints[i].x) + sqr(treeNode.y - current.influencePoints[i].y) + sqr(treeNode.z - current.influencePoints[i].z));
+        double d = distance(current._end, current.influencePoints[i]);
+
         if (d <= killDistance){
             current.influencePoints.erase(next(current.influencePoints.begin(), i));
-            attractionArray.erase(next(attractionArray.begin(), i));
+            attractionArray.erase(next(attractionArray.begin(), current.indexesInfluence[i]));
         }
     }
 }
