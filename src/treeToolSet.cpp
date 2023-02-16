@@ -154,8 +154,9 @@ void findInfluenceSet(Branch& current_branch, attractionPoints& treeCrown) {
   }
 }
 
-vec3f computeDirection(Branch& fatherBranch){
+vec3f computeDirection(Branch& fatherBranch, int seed){
   if (fatherBranch.influencePoints.size() > 0) {
+    rng_state rng = make_rng(seed);
     vec3f newDir = {0, 0, 0};
     vec3f num;
     float denom;
@@ -166,15 +167,14 @@ vec3f computeDirection(Branch& fatherBranch){
     }
     newDir = newDir /= fatherBranch.influencePoints.size();
     auto newDir_norm = sqrt(dot(newDir, newDir));
-    return newDir /= newDir_norm;
+    return (newDir /= newDir_norm) += rand3f(rng);
   }
   return {0,0,0};
 }
 
 
 vec3f determined_direction(Branch& fatherBranch){
-  auto fatherEnd = fatherBranch._end;
-  return fatherEnd += vec3f{0, 0.15, 0.15};
+  return vec3f{0, 0.03, 0.03};
 }
 
 
@@ -192,7 +192,8 @@ Branch insertChildBranch(Branch& fatherBranch, vec3f direction){
     Branch newBranch;
     newBranch._start      = fatherBranch._end;
     newBranch._direction  = direction *= fatherBranch._lenght;
-    newBranch._end = newBranch._direction  += newBranch._start;
+    newBranch._end = newBranch._direction += newBranch._start;
+    cout << "insert: (" << newBranch._end.x << ", " << newBranch._end.y << ", " << newBranch._end.z << ")" << endl;
     newBranch._lenght     = fatherBranch._lenght;
     newBranch.father_ptr  = &fatherBranch;
     newBranch.maxBranches = fatherBranch.maxBranches - 1;
@@ -214,8 +215,9 @@ void deleteAttractionPoints(Branch& current, attractionPoints& treeCrown){
         double d = distance(current._end, current.influencePoints[i]);
 
         if (d <= killDistance){
-            current.influencePoints.erase(next(current.influencePoints.begin(), i));
-            attractionArray.erase(next(attractionArray.begin(), current.indexesInfluence[i]));
+            current.influencePoints.erase(current.influencePoints.begin() + i);
+            attractionArray.erase(attractionArray.begin() + current.indexesInfluence[i]);
+            current.indexesInfluence.erase(current.indexesInfluence.begin() + i);
         }
     }
 }
