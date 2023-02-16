@@ -140,7 +140,7 @@ void run(const vector<string>& args) {
   auto minVec3f = crown.attractionPointsArray[0];
   print_info("minYvec3f= {}, {}, {}", minVec3f.x, minVec3f.y, minVec3f.z);
   // modeling for attrPoints
-  float ModelScale = 0.25;
+  float ModelScale = 0.4;
   auto floorPos = scene.instances[0].frame.o;
   print_info("floorPos= {},{},{}", floorPos.x, floorPos.y, floorPos.z);
   auto  attractionPointInstance = instance_data{frame3f{{ModelScale,0,0},
@@ -153,8 +153,8 @@ void run(const vector<string>& args) {
   vec3f originDir = {0, 0.5, 0};
   auto trunkBranch = Branch{floorPos,
       floorPos += originDir,
-      originDir *= 0.5,
-      0.51,
+      originDir *= 0.03,
+      0.03,
       NULL,
       vector<Branch>(),
       vector<vec3f>(),
@@ -169,13 +169,13 @@ void run(const vector<string>& args) {
                                             floorPos}, 2, 2};
   branchesArray.push_back(trunkBranch);
   branchesArray.push_back(runningBranch);
-  print_info("runningBranch: ({}, {}, {})", runningBranch._end.x, runningBranch._end.y, runningBranch._end.z);
+//  print_info("runningBranch: ({}, {}, {})", runningBranch._end.x, runningBranch._end.y, runningBranch._end.z);
 
   while (checkHeight(runningBranch, minVec3f)){
     // data
     runningBranch = insertChildBranch(trunkBranch, vec3f{0, 1, 0});
-    print_info("_start: ({}, {}, {})", runningBranch._start.x, runningBranch._start.y, runningBranch._start.z);
-    print_info("_end: ({}, {}, {})", runningBranch._end.x, runningBranch._end.y, runningBranch._end.z);
+//    print_info("_start: ({}, {}, {})", runningBranch._start.x, runningBranch._start.y, runningBranch._start.z);
+//    print_info("_end: ({}, {}, {})", runningBranch._end.x, runningBranch._end.y, runningBranch._end.z);
     branchesArray.push_back(runningBranch);
     trunkBranch = runningBranch;
     // models
@@ -186,41 +186,40 @@ void run(const vector<string>& args) {
 
   // TREE CROWN
   // chose the last branch of the TRUNK
-//  Branch prevBranch = branchesArray[branchesArray.size() - 1];
-//  findInfluenceSet(prevBranch, crown);
-//  auto growingBranch = insertChildBranch(prevBranch, computeDirection(trunkBranch));
-//  deleteAttractionPoints(prevBranch, crown);
-//  prevBranch = growingBranch;
-//  // find local influence set for the TRUNK
-//  for (int i = 0; i < 10; i++) {
-//    if (prevBranch.fertile){
-//      findInfluenceSet(prevBranch, crown);
-//      auto dir = computeDirection(prevBranch);
-//
-//      print_info("influ prev1: {}", prevBranch.influencePoints.size());
-//      if (dir.x == 0 && dir.y == 0 && dir.z == 0){
-//        print_info("NOT A VALID DIRECTION");
-//      }
-//      print_info("direction= {},{},{}", dir.x, dir.y, dir.z);
-//
-//      growingBranch = insertChildBranch(prevBranch, dir);
-//      branchesArray.push_back(growingBranch);
-//      deleteAttractionPoints(prevBranch, crown);
-//      print_info("influ prev2: {}", prevBranch.influencePoints.size());
-//      prevBranch = growingBranch;
-//
-//      print_info("influ growing: {}", growingBranch.influencePoints.size());
-//
-//    } else {
-//      break;
-//    }
-//  }
-  // MODELS
-//  for ( auto b : branchesArray){  // models
-//    auto b_instance    = branchInstanceData;
-//    b_instance.frame.o = growingBranch._start;
-//    scene.instances.push_back(b_instance);
-//  }
+  Branch prevBranch = branchesArray[branchesArray.size() - 1];
+  findInfluenceSet(prevBranch, crown);
+  auto growingBranch = insertChildBranch(prevBranch, computeDirection(trunkBranch, seedrnd));
+  deleteAttractionPoints(prevBranch, crown);
+  prevBranch = growingBranch;
+  // find local influence set for the TRUNK
+  for (int i = 0; i < 1000; i++) {
+    if (prevBranch.fertile){
+      findInfluenceSet(prevBranch, crown);
+      auto dir = computeDirection(prevBranch, seedrnd);
+
+      print_info("influ prev del: {}", prevBranch.influencePoints.size());
+      if (dir.x == 0 && dir.y == 0 && dir.z == 0){
+        print_info("NOT A VALID DIRECTION");
+        break ;
+      }
+      print_info("direction prev node= {},{},{}", dir.x, dir.y, dir.z);
+
+      growingBranch = insertChildBranch(prevBranch, dir);
+      // MODELS
+      auto b_instance    = branchInstanceData;
+      b_instance.frame.o = growingBranch._start;
+      scene.instances.push_back(b_instance);
+      //
+      branchesArray.push_back(growingBranch);
+      deleteAttractionPoints(prevBranch, crown);
+      print_info("influ post del: {}", prevBranch.influencePoints.size());
+      prevBranch = growingBranch;
+    } else {
+      break;
+    }
+  }
+  cout << "num AttrPoints after del: " << crown.attractionPointsArray.size() << endl;
+//   MODELS
   for (auto ap : crown.attractionPointsArray){
     auto aP_instance = attractionPointInstance;
     aP_instance.frame.o = ap;
