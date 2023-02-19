@@ -11,11 +11,19 @@ using namespace std;
 using std::string;
 using std::vector;
 namespace yocto {
+
 // STRUCTS
+
+
+typedef struct attrPoint3f {
+  vec3f coords;
+  int ID;
+}attrPoint3f;
+
 
 typedef struct attractionPoints {
   // Conteiner per la corona di punti di attrazione
-  vector<vec3f> attractionPointsArray;  // vettore di attraction points in uno spazio
+  vector<attrPoint3f> attractionPointsArray;  // vettore di attraction points in uno spazio
   string treeCrownShape;  // directoy del modello blender per la forma della chioma
   float  radiusInfluence;  // raggio di influenza di ogni punto di attrazione
   float  killDistance;     // raggio di eliminazione dei punti di influenza
@@ -31,26 +39,30 @@ typedef struct Branch {
   float     _lenght;
   Branch*   father_ptr{};  // puntatore al branch padre
   vector<Branch> children;
-  vector<vec3f> influencePoints;
-  vector<int> indexesInfluence;
+  vector<attrPoint3f> influencePoints;
+  vector<int>         influenceIDs;
   float trunkDiameter{}; // Diametro del tronco sul punto.
   int   maxBranches{};  // definisce il numero massimo di figli generabili
-  bool  fertile{};      // definisce se il nodo è fertile o meno
+  bool  fertile;      // definisce se il nodo è fertile o meno
 } Branch;
+
+// ERRORS
+
+class NoFertileBranch : public exception{
+  //attributes
+ public:
+  basic_string<char, char_traits<char>, allocator<char>> message;
+  //constructor
+ public:
+  NoFertileBranch(basic_string<char, char_traits<char>, allocator<char>> msg) : message(msg){}
+  //methods
+  basic_string<char, char_traits<char>, allocator<char>> what(){
+    return message;
+  }
+};
 
 
 // UTIL FUNCTIONS
-vec3f normalizeTree(vec3f v, float l) {
-  if (v.x == 0 && v.y == 0 && v.z == 0){ return v; // NO! bad vector!
-  } else {
-    v.x *= l;
-    v.y *= l;
-    v.z *= l;
-    return v;
-  }
-}
-
-
 int randomSeed(bool random, int interval_start, int interval_end) {
     if (!random) {
         return 58380;
@@ -63,11 +75,13 @@ int randomSeed(bool random, int interval_start, int interval_end) {
 }
 
 
-vector<vec3f> populateSphere(int num_points, int seed) {
+vector<attrPoint3f> populateSphere(int num_points, int seed) {
   auto rng = make_rng(seed); // seed the generator
-  vector<vec3f> rdmPoints_into_sphere;
+  vector<attrPoint3f> rdmPoints_into_sphere;
+  int ID = 0;
   for (auto i : range(num_points)){
-        rdmPoints_into_sphere.push_back(sample_sphere(rand2f(rng)));
+        rdmPoints_into_sphere.push_back(attrPoint3f{sample_sphere(rand2f(rng)), ID});
+        ID++;
   }
   return rdmPoints_into_sphere;
 }
@@ -141,15 +155,27 @@ vec3f populateMash(); //TODO: SAMPLE MASH
 // SPATIAL COLONIZATION FUNCTIONS
 bool checkHeight(Branch current, vec3f minVec) { return current._end.y < minVec.y; }
 
+
+//bool checkAttractionPoints(Branch current_branch, attractionPoints treeCrown) {
+//  double radiusInfluence = treeCrown.radiusInfluence;
+//  for (auto ap : range(treeCrown.attractionPointsArray.size())) {
+//    //    auto d = sqrt(sqr((ap.x - current_branch._end.x)) + sqr((ap.x - current_branch._end.x)) + sqr((ap.x - current_branch._end.x)));
+//    double d = distance(current_branch._end, treeCrown.attractionPointsArray[ap].coords);
+//    if (d <= radiusInfluence) {
+//
+//    }
+//  }
+//}
+
+
 void findInfluenceSet(Branch& current_branch, attractionPoints& treeCrown) {
-  auto attractionPointsArray = treeCrown.attractionPointsArray;
   double radiusInfluence = treeCrown.radiusInfluence;
-  for (auto ap : range(attractionPointsArray.size())) {
+  for (auto ap :treeCrown.attractionPointsArray) {
 //    auto d = sqrt(sqr((ap.x - current_branch._end.x)) + sqr((ap.x - current_branch._end.x)) + sqr((ap.x - current_branch._end.x)));
-    double d = distance(current_branch._end, attractionPointsArray[ap]);
+    double d = distance(current_branch._end, ap.coords);
     if (d <= radiusInfluence) {
-      current_branch.influencePoints.push_back(attractionPointsArray[ap]);
-      current_branch.indexesInfluence.push_back(ap);
+       current_branch.influencePoints.push_back(ap);
+       current_branch.influenceIDs.push_back(ap.ID);
     }
   }
 }
@@ -161,7 +187,7 @@ vec3f computeDirection(Branch& fatherBranch, int seed){
     vec3f num;
     float denom;
     for (auto ip : fatherBranch.influencePoints) {
-      num = ip - fatherBranch._end;
+      num = ip.coords -= fatherBranch._end;
       denom  = sqrt(dot(num, num));
       newDir = newDir += vec3f{num.x / denom, num.y / denom, num.z / denom};
     }
@@ -184,7 +210,7 @@ bool checkFatherFertility(Branch& fBranch){
         return true;
     } else {
         fBranch.fertile = false;
-        return false;
+        throw NoFertileBranch("A branch at " + to_string(fBranch._end.x) + to_string(fBranch._end.y) + to_string(fBranch._end.z) + " is not fertile anymore.");
     }
 }
 
@@ -193,7 +219,6 @@ Branch insertChildBranch(Branch& fatherBranch, vec3f direction){
     newBranch._start      = fatherBranch._end;
     newBranch._direction  = direction *= fatherBranch._lenght;
     newBranch._end = newBranch._direction += newBranch._start;
-    cout << "insert: (" << newBranch._end.x << ", " << newBranch._end.y << ", " << newBranch._end.z << ")" << endl;
     newBranch._lenght     = fatherBranch._lenght;
     newBranch.father_ptr  = &fatherBranch;
     newBranch.maxBranches = fatherBranch.maxBranches - 1;
@@ -209,17 +234,20 @@ Branch insertChildBranch(Branch& fatherBranch, vec3f direction){
 
 
 void deleteAttractionPoints(Branch& current, attractionPoints& treeCrown){
-    auto attractionArray = treeCrown.attractionPointsArray;
     auto killDistance = treeCrown.killDistance;
-    for (auto i : range(current.influencePoints.size())){
-        double d = distance(current._end, current.influencePoints[i]);
-
-        if (d <= killDistance){
-            current.influencePoints.erase(current.influencePoints.begin() + i);
-            attractionArray.erase(attractionArray.begin() + current.indexesInfluence[i]);
-            current.indexesInfluence.erase(current.indexesInfluence.begin() + i);
+    for (int i : range(current.influencePoints.size())){
+      double d = distance(current._end, current.influencePoints[i].coords);
+      if (d <= killDistance){
+        auto ID = current.influenceIDs[i];
+        for (int ap : range(treeCrown.attractionPointsArray.size())){
+          if (ID == treeCrown.attractionPointsArray[ap].ID){
+            treeCrown.attractionPointsArray.erase(treeCrown.attractionPointsArray.begin() + ap);
+          }
         }
+      }
     }
+    current.influencePoints.erase(current.influencePoints.begin(), current.influencePoints.end());
+    current.influenceIDs.erase(current.influenceIDs.begin(), current.influenceIDs.end());
 }
 
 
@@ -234,11 +262,11 @@ void swap(vector<T>& array, int index1, int index2) {
 }
 
 
-auto partition_vec3f(vector<vec3f>& arrVec3f, int start, int end) {
-  float pivot = arrVec3f[start].y;
+auto partition_attrPoint3f(vector<attrPoint3f>& arrVec3f, int start, int end) {
+  float pivot = arrVec3f[start].coords.y;
   int   count = 0;
   for (int i = start + 1; i <= end; i++) {
-        if (arrVec3f[i].y <= pivot) count++;
+        if (arrVec3f[i].coords.y <= pivot) count++;
   }
   // Giving pivot element its correct position
   int pivotIndex = start + count;
@@ -246,8 +274,8 @@ auto partition_vec3f(vector<vec3f>& arrVec3f, int start, int end) {
   // Sorting left and right parts of the pivot element
   int i = start, j = end;
   while (i < pivotIndex && j > pivotIndex) {
-        while (arrVec3f[i].y <= pivot) { i++;}
-        while (arrVec3f[j].y > pivot) { j--; }
+        while (arrVec3f[i].coords.y <= pivot) { i++;}
+        while (arrVec3f[j].coords.y > pivot) { j--; }
 
         if (i < pivotIndex && j > pivotIndex) {
             swap(arrVec3f, i++, j--);
@@ -257,12 +285,12 @@ auto partition_vec3f(vector<vec3f>& arrVec3f, int start, int end) {
 }
 
 
-auto quicksort_vec3f(vector<vec3f>& vec, int start, int end) {
+auto quicksort_attrPoint3f(vector<attrPoint3f>& vec, int start, int end) {
   if (start >= end) return;
   // partitioning the array
-  auto p = partition_vec3f(vec, start, end);
-  quicksort_vec3f(vec, start, p - 1);  // Sorting the left part
-  quicksort_vec3f(vec, p + 1, end);    // Sorting the right part
+  auto p = partition_attrPoint3f(vec, start, end);
+  quicksort_attrPoint3f(vec, start, p - 1);  // Sorting the left part
+  quicksort_attrPoint3f(vec, p + 1, end);    // Sorting the right part
 }
 
 

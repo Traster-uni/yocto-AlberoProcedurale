@@ -7,3 +7,6 @@ endfunction()
 
 add_yapp(treeToolSet)
 add_yapp(ytree)
+add_yapp(ytree_multy)
+
+
