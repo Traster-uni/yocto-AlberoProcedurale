@@ -61,6 +61,17 @@ class NoFertileBranch : public exception{
   }
 };
 
+class NoInfluencePointsInRange: public exception{
+ public:
+  basic_string<char, char_traits<char>, allocator<char>> message;
+ public:
+  NoInfluencePointsInRange(basic_string<char, char_traits<char>, allocator<char>> msg) : message(msg){}
+
+  basic_string<char, char_traits<char>, allocator<char>> what(){
+  return message;
+  }
+};
+
 
 // UTIL FUNCTIONS
 int randomSeed(bool random, int interval_start, int interval_end) {
@@ -178,6 +189,9 @@ void findInfluenceSet(Branch& current_branch, attractionPoints& treeCrown) {
        current_branch.influenceIDs.push_back(ap.ID);
     }
   }
+  if (current_branch.influencePoints.size() == 0){
+    throw NoInfluencePointsInRange("NoInfluecePointsInRange, using random direction");
+  }
 }
 
 vec3f computeDirection(Branch& fatherBranch, int seed){
@@ -198,6 +212,10 @@ vec3f computeDirection(Branch& fatherBranch, int seed){
   return {0,0,0};
 }
 
+vec3f rndDirection(Branch& fatherBranch, int seed){
+  rng_state rng = make_rng(seed);
+  return fatherBranch._end += rand3f(rng);
+}
 
 vec3f determined_direction(Branch& fatherBranch){
   return vec3f{0, 0.03, 0.03};

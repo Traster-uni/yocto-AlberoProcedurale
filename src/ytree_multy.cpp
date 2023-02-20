@@ -127,7 +127,8 @@ void run(const vector<string>& args) {
   attractionPoints crown;
   crown.radiusInfluence = stof(attr_range);
   crown.killDistance = stof(kill_range);
-  vector<Branch> branchesArray;
+  vector<Branch> branchesArray; // a collection of all branches in the tree
+  vector<Branch> extremities;   // a collection of branches that have no childrens
   // GENERATE THE CROWN OF ATTRACTION POINT
   // seeding
   auto seedrnd = randomSeed(rnd_input, 0, 100000);
@@ -150,53 +151,65 @@ void run(const vector<string>& args) {
                                                         1, 1};
 
   // TREE TRUNK
-  vec3f originDir = {0, 0.5, 0};
+  // branch render instance
+  auto branchInstanceData = instance_data{frame3f{{ModelScale,0,0},
+                                                  {0,ModelScale,0},
+                                                  {0,0,ModelScale},
+                                                  floorPos}, 2, 2};
+  // trunk instance and growth direction
+  vec3f trunkGrowthDir = {0, 0.5, 0};
   auto trunkBranch = Branch{floorPos,
-      floorPos += originDir,
-      originDir *= 0.03,
+      floorPos += trunkGrowthDir,
+      trunkGrowthDir *= 0.03,
       0.03,
       NULL,
       vector<Branch>(),
       vector<attrPoint3f>(),
       vector<int>(),
       0.1,
-      1000,
+      100,
       true};
-  auto runningBranch = insertChildBranch(trunkBranch, originDir);
-  auto branchInstanceData = instance_data{frame3f{{ModelScale,0,0},
-                                            {0,ModelScale,0},
-                                            {0,0,ModelScale},
-                                            floorPos}, 2, 2};
+
+  auto growingTrunk = insertChildBranch(trunkBranch, trunkGrowthDir);
 //  print_info("runningBranch: ({}, {}, {})", runningBranch._end.x, runningBranch._end.y, runningBranch._end.z);
   branchesArray.push_back(trunkBranch);
-  branchesArray.push_back(runningBranch)
-  while (checkHeight(runningBranch, minVec3f.coords)){
+  branchesArray.push_back(growingTrunk);
+  while (checkHeight(growingTrunk, minVec3f.coords)){
     // data
-    runningBranch = insertChildBranch(trunkBranch, vec3f{0, 1, 0});
-//    print_info("_start: ({}, {}, {})", runningBranch._start.x, runningBranch._start.y, runningBranch._start.z);
-//    print_info("_end: ({}, {}, {})", runningBranch._end.x, runningBranch._end.y, runningBranch._end.z);
-    trunkBranch = runningBranch;
-    branchesArray.push_back(runningBranch);
+    growingTrunk = insertChildBranch(trunkBranch, vec3f{0, 1, 0});
+    trunkBranch = growingTrunk;
+    branchesArray.push_back(growingTrunk);
     // models
     auto b_instance = branchInstanceData;
     b_instance.frame.o = trunkBranch._start;
     scene.instances.push_back(b_instance);
   }
-  
-  vector<Branch> extremities;
-  runningBranch = branchesArray[branchesArray.size()-1];
-  findInfluenceSet(runningBranch, crown);
-  // TREE CROWN
-  // chose the last branch of the TRUNK
-  for (auto b : extremities){
-    b.fertile = true;
-  }
-  for ( int i = crown.attractionPointsArray.size()-1; i >= 0; i--){
-    for (Branch b : branchesArray){
-      if
+
+  while (crown.attractionPointsArray.size() > 0){
+    for (Branch currentBranch : branchesArray){
+      vec3f dir;
+      auto exception_caught = false;
+      print_info("currentBranch= ({}, {}, {})", currentBranch._start.x, currentBranch._start.y, currentBranch._start.z);
+      try{
+        findInfluenceSet(currentBranch, crown);
+      } catch (const NoInfluencePointsInRange& err){
+        cout << err.message << endl;
+        dir = rndDirection(currentBranch, seedrnd);
+        exception_caught = true;
+      }
+      if (exception_caught) {
+        dir = computeDirection(currentBranch, seedrnd);
+      }
+      auto nextBranch = insertChildBranch(currentBranch, dir);
+      print_info("nextBranch= ({}, {}, {})", nextBranch._start.x, nextBranch._start.y, nextBranch._start.z);
+      deleteAttractionPoints(currentBranch, crown);
+      branchesArray.push_back(nextBranch);
+      // Models
+      auto b_instance    = branchInstanceData;
+      b_instance.frame.o = currentBranch._start;
+      scene.instances.push_back(b_instance);
     }
   }
-
 //  // MODELS
 //  auto b_instance    = branchInstanceData;
 //  b_instance.frame.o = growingBranch._start;
