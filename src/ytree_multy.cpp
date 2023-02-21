@@ -20,7 +20,8 @@ using namespace std::string_literals;
 // main function
 void run(const vector<string>& args) {
   // parameters
-  auto scenename   = "scene.json"s;
+//  auto scenename   = "scene.json"s;
+  auto scenename = R"(C:\yocto-AlberoProcedurale\tests\tests_assets\node_crown\node_crown_test.json)"s;
   auto outname     = "point_image.png"s;
   auto paramsname  = ""s;
   auto interactive = false;
@@ -32,9 +33,12 @@ void run(const vector<string>& args) {
   auto dumpname    = ""s;
   //custom
   auto rnd_input = false;
-  auto num_attrPoint = ""s;
-  auto attr_range = ""s;
-  auto kill_range = ""s;
+//  auto num_attrPoint = ""s;
+  auto num_attrPoint = "2000"s;
+//  auto attr_range = ""s;
+  auto attr_range = "0.3"s;
+//  auto kill_range = ""s;
+  auto kill_range = "0.15"s;
   auto treeType = ""s;
 
   //
@@ -170,46 +174,7 @@ void run(const vector<string>& args) {
       100,
       true};
 
-  auto growingTrunk = insertChildBranch(trunkBranch, trunkGrowthDir);
-//  print_info("runningBranch: ({}, {}, {})", runningBranch._end.x, runningBranch._end.y, runningBranch._end.z);
-  branchesArray.push_back(trunkBranch);
-  branchesArray.push_back(growingTrunk);
-  while (checkHeight(growingTrunk, minVec3f.coords)){
-    // data
-    growingTrunk = insertChildBranch(trunkBranch, vec3f{0, 1, 0});
-    trunkBranch = growingTrunk;
-    branchesArray.push_back(growingTrunk);
-    // models
-    auto b_instance = branchInstanceData;
-    b_instance.frame.o = trunkBranch._start;
-    scene.instances.push_back(b_instance);
-  }
 
-  while (crown.attractionPointsArray.size() > 0){
-    for (Branch currentBranch : branchesArray){
-      vec3f dir;
-      auto exception_caught = false;
-      print_info("currentBranch= ({}, {}, {})", currentBranch._start.x, currentBranch._start.y, currentBranch._start.z);
-      try{
-        findInfluenceSet(currentBranch, crown);
-      } catch (const NoInfluencePointsInRange& err){
-        cout << err.message << endl;
-        dir = rndDirection(currentBranch, seedrnd);
-        exception_caught = true;
-      }
-      if (exception_caught) {
-        dir = computeDirection(currentBranch, seedrnd);
-      }
-      auto nextBranch = insertChildBranch(currentBranch, dir);
-      print_info("nextBranch= ({}, {}, {})", nextBranch._start.x, nextBranch._start.y, nextBranch._start.z);
-      deleteAttractionPoints(currentBranch, crown);
-      branchesArray.push_back(nextBranch);
-      // Models
-      auto b_instance    = branchInstanceData;
-      b_instance.frame.o = currentBranch._start;
-      scene.instances.push_back(b_instance);
-    }
-  }
 //  // MODELS
 //  auto b_instance    = branchInstanceData;
 //  b_instance.frame.o = growingBranch._start;
