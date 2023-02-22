@@ -21,10 +21,11 @@ using namespace std::string_literals;
 void run(const vector<string>& args) {
   // parameters
 //  auto scenename   = "scene.json"s;
-  auto scenename = R"(C:\yocto-AlberoProcedurale\tests\tests_assets\node_crown\node_crown_test.json)"s;
+//  auto scenename = R"(C:\yocto-AlberoProcedurale\tests\tests_assets\node_crown\node_crown_test.json)"s;
+  auto scenename = "/home/tommasomarialopedote/Computer-graphics-project/yocto-AlberoProcedurale/tests/tests_assets/node_crown/node_crown_test.json"s;
   auto outname     = "point_image.png"s;
   auto paramsname  = ""s;
-  auto interactive = false;
+  auto interactive = true;
   auto edit        = false;
   auto camname     = ""s;
   bool addsky      = false;
@@ -34,11 +35,11 @@ void run(const vector<string>& args) {
   //custom
   auto rnd_input = false;
 //  auto num_attrPoint = ""s;
-  auto num_attrPoint = "2000"s;
+  auto num_attrPoint = "500"s;
 //  auto attr_range = ""s;
   auto attr_range = "0.3"s;
 //  auto kill_range = ""s;
-  auto kill_range = "0.15"s;
+  auto kill_range = "0.1"s;
   auto treeType = ""s;
 
   //
@@ -164,67 +165,88 @@ void run(const vector<string>& args) {
   vec3f trunkGrowthDir = {0, 0.5, 0};
   auto trunkBranch = Branch{floorPos,
       floorPos += trunkGrowthDir,
-      trunkGrowthDir *= 0.03,
-      0.03,
-      NULL,
+      trunkGrowthDir *= 0.05,
+      0.05,
+      nullptr,
       vector<Branch>(),
       vector<attrPoint3f>(),
       vector<int>(),
+      10,
+      2,
+      1,
+      false,
       0.1,
-      200,
       false};
-
-
-  auto growingTrunk = insertChildBranch(trunkBranch, trunkGrowthDir);
-//  print_info("runningBranch: ({}, {}, {})", runningBranch._end.x, runningBranch._end.y, runningBranch._end.z);
   branchesArray.push_back(trunkBranch);
-  branchesArray.push_back(growingTrunk);
-  while (checkHeight(growingTrunk, minVec3f.coords)){
-    // data
-    growingTrunk = insertChildBranch(trunkBranch, vec3f{0, 1, 0});
-    trunkBranch = growingTrunk;
-    branchesArray.push_back(growingTrunk);
-    // models
-    auto b_instance = branchInstanceData;
+  auto a = branchesArray[branchesArray.size() - 1 ];
+  cout<< "PRIMA DEL WHILE 182 :" <<a._start.x << ", " << a._start.y << ", " << a._start.z << endl;
+  Branch growingBranch = growChildBranch(trunkBranch, rndDirection(trunkBranch, seedrnd));
+  branchesArray.push_back(growingBranch);
+  while (checkHeight(growingBranch, minVec3f.coords)){
+    cout<<"i am in tha abllz"<<endl;
+    growingBranch = growChildBranch(trunkBranch, trunkGrowthDir);
+    growingBranch.fertile = false;
+    trunkBranch = growingBranch;
+    branchesArray.push_back(growingBranch);
+
+    // MODELS
+    auto b_instance    = branchInstanceData;
     b_instance.frame.o = trunkBranch._start;
     scene.instances.push_back(b_instance);
+    //
   }
-  extremities.push_back(branchesArray[branchesArray.size()-1]);
-  for (Branch b : extremities){
-    b.fertile = true;
+  branchesArray[branchesArray.size()-1].fertile = true;
+  for (auto a: branchesArray){
+    cout<< a._start.x << ", " << a._start.y << ", " << a._start.z << endl;
   }
   // Imita il comportamento di un while
   // branchesArray = _branches
   // branch.influenceArray = _activeAttractors
-  for (int i = 0; i < 500; i++){
-    vec3f dir;
-    bool noInfluence = true;
-    for (Branch b : extremities){
+  int fertileBranches = 1;
+  while(fertileBranches > 0){
+    for (Branch currentBranch : branchesArray){
+      vec3f dir;
+      bool  inRange = false;
+
       try{
-        findInfluenceSet(b, crown);
-        noInfluence = false;
+        findInfluenceSet(currentBranch, crown);
+        inRange = true;
       } catch (NoInfluencePointsInRange& err){
-        rndDirection(b, seedrnd);
+        cerr << err.what() << endl;
+        dir = rndDirection(currentBranch, seedrnd);
+        cout << "dir not in range: " << dir.x << ", " << dir.y << ", " << dir.z << endl;
+        currentBranch.fertile = false;
       }
-      if (!noInfluence){
-        computeDirection(b, seedrnd);
+      if (inRange){ // try catch and else
+        dir = computeDirection(currentBranch, seedrnd);
+        cout << "dir in range: " << dir.x << ", " << dir.y << ", " << dir.z << endl;
       }
-      //MODELS
-      auto growingBranch = insertChildBranch(b, dir);
-      auto b_instance    = branchInstanceData;
-      b_instance.frame.o = growingBranch._start;
-      scene.instances.push_back(b_instance);
-      //
-      extremities.push_back(growingBranch);
-      branchesArray.push_back(growingBranch);
-      for (int b: range(extremities.size())){
-        if (!extremities[b].fertile){
-          extremities.erase(extremities.begin() + b);
-        }
+
+      cout << "current Branch fertility " << currentBranch.fertile << endl;
+      if (isFertile(currentBranch)){
+        currentBranch.fertile = true;
+        fertileBranches++;
+        cout<< "fertileUp" << fertileBranches<<endl;
+
+        auto newBranch = growChildBranch(currentBranch, dir);
+        deleteAttractionPoints(currentBranch, crown);
+        clearInfluenceSet(currentBranch);
+        branchesArray.push_back(newBranch);
+
+        // MODELS
+        auto b_instance    = branchInstanceData;
+        b_instance.frame.o = currentBranch._start;
+        scene.instances.push_back(b_instance);
+        //
+
+      }else{
+        cout<<"fertileBeforeDown"<< fertileBranches <<endl;
+        fertileBranches = fertileBranches - defertilize(&currentBranch);
+        cout<< "fertileDown" << fertileBranches<<endl;
+        clearInfluenceSet(currentBranch);
       }
     }
   }
-
 //  // MODELS
 //  auto b_instance    = branchInstanceData;
 //  b_instance.frame.o = growingBranch._start;
