@@ -20,7 +20,8 @@ using namespace std::string_literals;
 // main function
 void run(const vector<string>& args) {
   // parameters
-  auto scenename   = "scene.json"s;
+//  auto scenename   = "scene.json"s;
+  auto scenename = R"(C:\yocto-AlberoProcedurale\tests\tests_assets\node_crown\node_crown_test.json)"s;
   auto outname     = "point_image.png"s;
   auto paramsname  = ""s;
   auto interactive = false;
@@ -32,9 +33,12 @@ void run(const vector<string>& args) {
   auto dumpname    = ""s;
   //custom
   auto rnd_input = false;
-  auto num_attrPoint = ""s;
-  auto attr_range = ""s;
-  auto kill_range = ""s;
+//  auto num_attrPoint = ""s;
+  auto num_attrPoint = "2000"s;
+//  auto attr_range = ""s;
+  auto attr_range = "0.3"s;
+//  auto kill_range = ""s;
+  auto kill_range = "0.15"s;
   auto treeType = ""s;
 
   //
@@ -170,6 +174,7 @@ void run(const vector<string>& args) {
       200,
       false};
 
+
   auto growingTrunk = insertChildBranch(trunkBranch, trunkGrowthDir);
 //  print_info("runningBranch: ({}, {}, {})", runningBranch._end.x, runningBranch._end.y, runningBranch._end.z);
   branchesArray.push_back(trunkBranch);
@@ -219,6 +224,7 @@ void run(const vector<string>& args) {
       }
     }
   }
+
 //  // MODELS
 //  auto b_instance    = branchInstanceData;
 //  b_instance.frame.o = growingBranch._start;
