@@ -167,8 +167,8 @@ void run(const vector<string>& args) {
       vector<attrPoint3f>(),
       vector<int>(),
       0.1,
-      100,
-      true};
+      200,
+      false};
 
   auto growingTrunk = insertChildBranch(trunkBranch, trunkGrowthDir);
 //  print_info("runningBranch: ({}, {}, {})", runningBranch._end.x, runningBranch._end.y, runningBranch._end.z);
@@ -184,30 +184,39 @@ void run(const vector<string>& args) {
     b_instance.frame.o = trunkBranch._start;
     scene.instances.push_back(b_instance);
   }
-
-  while (crown.attractionPointsArray.size() > 0){
-    for (Branch currentBranch : branchesArray){
-      vec3f dir;
-      auto exception_caught = false;
-      print_info("currentBranch= ({}, {}, {})", currentBranch._start.x, currentBranch._start.y, currentBranch._start.z);
+  extremities.push_back(branchesArray[branchesArray.size()-1]);
+  for (Branch b : extremities){
+    b.fertile = true;
+  }
+  // Imita il comportamento di un while
+  // branchesArray = _branches
+  // branch.influenceArray = _activeAttractors
+  for (int i = 0; i < 500; i++){
+    vec3f dir;
+    bool noInfluence = true;
+    for (Branch b : extremities){
       try{
-        findInfluenceSet(currentBranch, crown);
-      } catch (const NoInfluencePointsInRange& err){
-        cout << err.message << endl;
-        dir = rndDirection(currentBranch, seedrnd);
-        exception_caught = true;
+        findInfluenceSet(b, crown);
+        noInfluence = false;
+      } catch (NoInfluencePointsInRange& err){
+        rndDirection(b, seedrnd);
       }
-      if (exception_caught) {
-        dir = computeDirection(currentBranch, seedrnd);
+      if (!noInfluence){
+        computeDirection(b, seedrnd);
       }
-      auto nextBranch = insertChildBranch(currentBranch, dir);
-      print_info("nextBranch= ({}, {}, {})", nextBranch._start.x, nextBranch._start.y, nextBranch._start.z);
-      deleteAttractionPoints(currentBranch, crown);
-      branchesArray.push_back(nextBranch);
-      // Models
+      //MODELS
+      auto growingBranch = insertChildBranch(b, dir);
       auto b_instance    = branchInstanceData;
-      b_instance.frame.o = currentBranch._start;
+      b_instance.frame.o = growingBranch._start;
       scene.instances.push_back(b_instance);
+      //
+      extremities.push_back(growingBranch);
+      branchesArray.push_back(growingBranch);
+      for (int b: range(extremities.size())){
+        if (!extremities[b].fertile){
+          extremities.erase(extremities.begin() + b);
+        }
+      }
     }
   }
 //  // MODELS

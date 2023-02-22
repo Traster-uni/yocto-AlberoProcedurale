@@ -41,8 +41,9 @@ typedef struct Branch {
   vector<Branch> children;
   vector<attrPoint3f> influencePoints;
   vector<int>         influenceIDs;
-  float trunkDiameter{}; // Diametro del tronco sul punto.
-  int   maxBranches{};  // definisce il numero massimo di figli generabili
+  float trunkDiameter; // Diametro del tronco sul punto.
+  int   maxBranches; // definisce il numero massimo di figli generabili
+  int   minBranches; // definisce il numero minimo di figli da generare
   bool  fertile;      // definisce se il nodo è fertile o meno
 } Branch;
 
@@ -214,7 +215,7 @@ vec3f computeDirection(Branch& fatherBranch, int seed){
 
 vec3f rndDirection(Branch& fatherBranch, int seed){
   rng_state rng = make_rng(seed);
-  return fatherBranch._end += rand3f(rng);
+  return fatherBranch._direction += rand3f(rng);
 }
 
 vec3f determined_direction(Branch& fatherBranch){
@@ -240,10 +241,12 @@ Branch insertChildBranch(Branch& fatherBranch, vec3f direction){
     newBranch._lenght     = fatherBranch._lenght;
     newBranch.father_ptr  = &fatherBranch;
     newBranch.maxBranches = fatherBranch.maxBranches - 1;
+    newBranch.fertile = true;
     fatherBranch.children.push_back(newBranch);
-    if (checkFatherFertility(fatherBranch)) {
-        newBranch.fertile = true;
-    } else {
+    try {
+        checkFatherFertility(fatherBranch);
+    } catch (NoFertileBranch& e){
+        cerr << e.message << endl;
         newBranch.fertile = false;
     }
     return newBranch;
