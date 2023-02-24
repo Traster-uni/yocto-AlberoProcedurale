@@ -37,9 +37,9 @@ void run(const vector<string>& args) {
 //  auto num_attrPoint = ""s;
   auto num_attrPoint = "1000"s;
 //  auto attr_range = ""s;
-  auto attr_range = "0.5"s;
+  auto attr_range = "0.3"s;
 //  auto kill_range = ""s;
-  auto kill_range = "0.2"s;
+  auto kill_range = "0.15"s;
   auto treeType = ""s;
 
   //
@@ -195,52 +195,54 @@ void run(const vector<string>& args) {
   }
 
   branchesArray[branchesArray.size()-1].fertile = true;
-  branchesArray[branchesArray.size()-1].depth = 10;
-  // Imita il comportamento di un while
-  // branchesArray = _branches
-  // branch.influenceArray = _activeAttractors
+  Branch newBranch;
+  auto c = branchesArray[branchesArray.size()-1];
+  c.depth = 10;
+  cout << "C depth and children " << c.depth << ", " << c.children.size() << endl;
   int fertileBranches = 1;
-  while(fertileBranches > 0){
-    for (Branch currentBranch : branchesArray) {
-      if (fertileBranches > 0) {
-        vec3f dir;
-        try {
-          findInfluenceSet(currentBranch, crown);
-          dir = computeDirection(currentBranch, seedrnd);
-        } catch (NoInfluencePointsInRange& err) {
-          cerr << err.what() << endl;
-          dir = rndDirection(currentBranch, seedrnd);
-        }
-        cout << "STATUS influencePoints : "
-             << currentBranch.influencePoints.empty() << endl;
-
-        if (isFertile(currentBranch)) {
-          currentBranch.fertile = true;
-          fertileBranches++;
-          cout << "fertileUp " << fertileBranches << endl;
-
-          auto newBranch = growChildBranch(currentBranch, dir);
-          deleteAttractionPoints(currentBranch, crown);
-          clearInfluenceSet(currentBranch);
-          branchesArray.push_back(newBranch);
-
-          // MODELS
-          auto b_instance    = branchInstanceData;
-          b_instance.frame.o = currentBranch._end;
-          scene.instances.push_back(b_instance);
-          //
-
-        } else {
-          currentBranch.fertile = false;
-          fertileBranches       = fertileBranches - defertilize(&currentBranch);
-          cout << "fertileDown " << fertileBranches << endl;
-          clearInfluenceSet(currentBranch);
-        }
-        cout << "current Branch fertility " << currentBranch.fertile << endl;
-      }
-      break ;
+  while(fertileBranches > 0) {
+    vec3f dir;
+    try {
+      findInfluenceSet(c, crown);
+      dir = computeDirection(c, seedrnd);
+      cout << " dir in range: " << dir.x << ", " << dir.y << ", " << dir.z
+           << endl;
+    } catch (NoInfluencePointsInRange& err) {
+      cerr << "[204]" << err.what() << endl;
+      dir = rndDirection(c, seedrnd);
+      cout << " dir not in range: " << dir.x << ", " << dir.y << ", " << dir.z << endl;
     }
+
+    cout << "STATUS influencePoints : " << !c.influencePoints.empty() << endl;
+
+    if (isFertile(c)) {
+      c.fertile = true;
+      cout << "fertileBranches PRE incremento " << fertileBranches << endl;
+      fertileBranches++;
+      cout << "fertileBranches POST incremento " << fertileBranches << endl;
+
+      newBranch = growChildBranch(c, dir);
+      cout << "C depth and children - POST " << c.depth << ", " << c.children.size() << endl;
+      deleteAttractionPoints(c, crown);
+      clearInfluenceSet(c);
+      branchesArray.push_back(newBranch);
+
+      // MODELS
+      auto b_instance    = branchInstanceData;
+      b_instance.frame.o = newBranch._end;
+      scene.instances.push_back(b_instance);
+      //
+    } else {
+      c.fertile       = false;
+      cout << "fertileBranches PRE decremento " << fertileBranches << endl;
+      fertileBranches = fertileBranches - defertilize(&c);
+      cout << "fertileBranches POST decremento " << fertileBranches << endl;
+      clearInfluenceSet(c);
+    }
+    c = newBranch;
   }
+
+
 //  // MODELS
 //  auto b_instance    = branchInstanceData;
 //  b_instance.frame.o = growingBranch._start;

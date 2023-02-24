@@ -181,14 +181,13 @@ bool checkHeight(Branch current, vec3f minVec) { return current._end.y < minVec.
 
 
 bool isFertile(Branch& current){
-  if (current.depth > 0 || current.maxBranches > current.children.size() ||
-      (current.minBranches > current.children.size() &&
-      !current.influencePoints.empty())) {
+  if (current.depth > 0 &&
+      current.children.size() < current.maxBranches &&
+      !current.influencePoints.empty()){
         return true;
   }
   return false;
 }
-
 bool checkGlobalFertility(vector<Branch>& branchesArray){
   for (auto& b : branchesArray){
     if (b.fertile){
@@ -252,6 +251,19 @@ Branch growChildBranch(Branch& fatherBranch, vec3f direction){
     return newBranch;
 }
 
+Branch growChildTrunk(Branch& fatherBranch, vec3f direction){
+    Branch newBranch;
+    newBranch._start      = fatherBranch._end;
+    newBranch._direction  = direction *= fatherBranch._length;
+    newBranch._end = newBranch._direction += newBranch._start;
+    newBranch._length     = fatherBranch._length;
+    newBranch.father_ptr  = &fatherBranch;
+    newBranch.maxBranches = fatherBranch.maxBranches;
+    newBranch.minBranches = fatherBranch.minBranches;
+    newBranch.depth = 0;
+    fatherBranch.children.push_back(newBranch);
+    return newBranch;
+}
 
 void clearInfluenceSet(Branch& branch){
     branch.influencePoints.clear();
@@ -274,7 +286,7 @@ void deleteAttractionPoints(Branch& current, attractionPoints& treeCrown){
     }
 }
 
-int defertilize(Branch* current){
+int defertilize(Branch* current ){
     current -> fertile = false;
     if(!current -> fertile){
       return 1;
