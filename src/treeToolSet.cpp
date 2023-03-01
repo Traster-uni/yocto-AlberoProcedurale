@@ -37,11 +37,11 @@ typedef struct Branch {
   vec3f     _end;
   vec3f     _direction;
   float     _length;
+  int       _id;
   Branch*   father_ptr{};  // puntatore al branch padre
   vector<Branch> children;
   vector<attrPoint3f> influencePoints;
-  vector<int>         influenceIDs;
-  int   depth; //numero di discendenti
+//  int   depth; //numero di discendenti
   int   maxBranches; // definisce il numero massimo di figli generabili
   int   minBranches; // definisce il numero minimo di figli da generare
   bool  fertile;      // definisce se il nodo è fertile o meno
@@ -181,13 +181,14 @@ bool checkHeight(Branch current, vec3f minVec) { return current._end.y < minVec.
 
 
 bool isFertile(Branch& current){
-  if (current.depth > 0 &&
-      current.children.size() < current.maxBranches &&
+  if (current.children.size() < current.maxBranches &&
       !current.influencePoints.empty()){
         return true;
   }
   return false;
 }
+
+
 bool checkGlobalFertility(vector<Branch>& branchesArray){
   for (auto& b : branchesArray){
     if (b.fertile){
@@ -199,17 +200,18 @@ bool checkGlobalFertility(vector<Branch>& branchesArray){
 
 // Structs modifications
 
-void findInfluenceSet(Branch& current_branch, attractionPoints& treeCrown) {
+void findInfluenceSet(Branch& current, attractionPoints& treeCrown) {
+//  cout << " # > SEARCHING FOR INFLUENCE POINTS" << endl;
   double radiusInfluence = treeCrown.radiusInfluence;
   for (auto ap :treeCrown.attractionPointsArray) {
-//    auto d = sqrt(sqr((ap.x - current_branch._end.x)) + sqr((ap.x - current_branch._end.x)) + sqr((ap.x - current_branch._end.x)));
-    double d = distance(current_branch._end, ap.coords);
+    double d = distance(current._end, ap.coords);
     if (d <= radiusInfluence) {
-       current_branch.influencePoints.push_back(ap);
-       current_branch.influenceIDs.push_back(ap.ID);
+//      cout << " # > distance between the attrPoint: "<< ap.ID << " and branch: "  << current._id << " is " << d <<  endl;
+//      cout << " # > attrPoint coords: (" << ap.coords.x << ", " << ap.coords.y << ", " << ap.coords.z << ")" << endl;
+      current.influencePoints.push_back(ap);
     }
   }
-  if (current_branch.influencePoints.empty()){
+  if (current.influencePoints.empty()){
     throw NoInfluencePointsInRange("No attraction points in range"s);
   }
 }
@@ -221,7 +223,8 @@ vec3f computeDirection(Branch& fatherBranch, int seed){
   vec3f num;
   float denom;
   for (auto& ip : fatherBranch.influencePoints) {
-    num = ip.coords -= fatherBranch._end;
+    auto ip_local = ip;
+    num = ip_local.coords -= fatherBranch._end;
     denom  = sqrt(dot(num, num));
     newDir = newDir += vec3f{num.x / denom, num.y / denom, num.z / denom};
   }
@@ -243,56 +246,39 @@ Branch growChildBranch(Branch& fatherBranch, vec3f direction){
     newBranch._direction  = direction *= fatherBranch._length;
     newBranch._end = newBranch._direction += newBranch._start;
     newBranch._length     = fatherBranch._length;
+    newBranch._id = fatherBranch._id + 1;
     newBranch.father_ptr  = &fatherBranch;
+    newBranch.fertile = true;
     newBranch.maxBranches = fatherBranch.maxBranches;
     newBranch.minBranches = fatherBranch.minBranches;
-    newBranch.depth = fatherBranch.depth - 1;
     fatherBranch.children.push_back(newBranch);
     return newBranch;
 }
 
-Branch growChildTrunk(Branch& fatherBranch, vec3f direction){
-    Branch newBranch;
-    newBranch._start      = fatherBranch._end;
-    newBranch._direction  = direction *= fatherBranch._length;
-    newBranch._end = newBranch._direction += newBranch._start;
-    newBranch._length     = fatherBranch._length;
-    newBranch.father_ptr  = &fatherBranch;
-    newBranch.maxBranches = fatherBranch.maxBranches;
-    newBranch.minBranches = fatherBranch.minBranches;
-    newBranch.depth = 0;
-    fatherBranch.children.push_back(newBranch);
-    return newBranch;
-}
 
 void clearInfluenceSet(Branch& branch){
     branch.influencePoints.clear();
-    branch.influenceIDs.clear();
 }
 
 
 void deleteAttractionPoints(Branch& current, attractionPoints& treeCrown){
-    auto killDistance = treeCrown.killDistance;
-    for (int i : range(current.influencePoints.size())){
-      double d = distance(current._end, current.influencePoints[i].coords);
-      if (d <= killDistance){
-        auto ID = current.influenceIDs[i];
-        for (int ap : range(treeCrown.attractionPointsArray.size())){
-          if (ID == treeCrown.attractionPointsArray[ap].ID){
-            treeCrown.attractionPointsArray.erase(treeCrown.attractionPointsArray.begin() + ap);
-          }
+//  cout << " $ > DELETING ATTR POINTS" << endl;
+  auto killDistance = treeCrown.killDistance;
+  for (auto influ : current.influencePoints){
+    double d = distance(current._end, influ.coords);
+//    cout << " $ > distance between the attrPoint: "<< influ.ID << " and branch: "  << current._id << " is " << d <<  endl;
+//    cout << " $ > attrPoint coords: (" << influ.coords.x << ", " << influ.coords.y << ", " << influ.coords.z << ")" << endl;
+    if (d <= killDistance){
+      for (int ap : range(treeCrown.attractionPointsArray.size())){
+        if (influ.ID == treeCrown.attractionPointsArray[ap].ID){
+          treeCrown.attractionPointsArray.erase(treeCrown.attractionPointsArray.begin() + ap);
+//          cout << " $ > deleted attrpoint: " << influ.ID << endl;
         }
       }
     }
+  }
 }
 
-int defertilize(Branch* current ){
-    current -> fertile = false;
-    if(!current -> fertile){
-      return 1;
-    }
-    return 1 + defertilize(current -> father_ptr);
-}
 
 // Sorting algorithm
 // Quicksort code from:

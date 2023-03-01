@@ -21,8 +21,8 @@ using namespace std::string_literals;
 void run(const vector<string>& args) {
   // parameters
 //  auto scenename   = "scene.json"s;
-//  auto scenename = R"(C:\yocto-AlberoProcedurale\tests\tests_assets\node_crown\node_crown_test.json)"s;
-  auto scenename = "/home/tommasomarialopedote/Computer-graphics-project/yocto-AlberoProcedurale/tests/tests_assets/node_crown/node_crown_test.json"s;
+  auto scenename = R"(C:\yocto-AlberoProcedurale\tests\tests_assets\node_crown\node_crown_test.json)"s;
+//  auto scenename = "/home/tommasomarialopedote/Computer-graphics-project/yocto-AlberoProcedurale/tests/tests_assets/node_crown/node_crown_test.json"s;
   auto outname     = "point_image.png"s;
   auto paramsname  = ""s;
   auto interactive = true;
@@ -133,6 +133,7 @@ void run(const vector<string>& args) {
   crown.radiusInfluence = stof(attr_range);
   crown.killDistance = stof(kill_range);
   vector<Branch> branchesArray; // a collection of all branches in the tree
+  vector<Branch> trunksArray;
   vector<Branch> extremities;   // a collection of branches that have no childrens
   // GENERATE THE CROWN OF ATTRACTION POINT
   // seeding
@@ -167,25 +168,25 @@ void run(const vector<string>& args) {
       floorPos += trunkGrowthDir,
       trunkGrowthDir *= 0.3,
       0.3,
+      0,
       nullptr,
       vector<Branch>(),
       vector<attrPoint3f>(),
       vector<int>(),
-      0,
       2,
       1,
       false,
       0.1,
       false};
-  branchesArray.push_back(trunkBranch);
+  trunksArray.push_back(trunkBranch);
   auto a = branchesArray[branchesArray.size() - 1 ];
-  Branch growingBranch = growChildTrunk(trunkBranch, rndDirection(trunkBranch, seedrnd));
-  branchesArray.push_back(growingBranch);
+  Branch growingBranch = growChildBranch(trunkBranch, rndDirection(trunkBranch, seedrnd));
+  trunksArray.push_back(growingBranch);
   while (checkHeight(growingBranch, minVec3f.coords)){
-    growingBranch = growChildTrunk(trunkBranch, trunkGrowthDir);
+    growingBranch = growChildBranch(trunkBranch, trunkGrowthDir);
     growingBranch.fertile = false;
     trunkBranch = growingBranch;
-    branchesArray.push_back(growingBranch);
+    trunksArray.push_back(growingBranch);
 
     // MODELS
     auto b_instance    = branchInstanceData;
@@ -193,16 +194,16 @@ void run(const vector<string>& args) {
     scene.instances.push_back(b_instance);
     //
   }
+  trunksArray[trunksArray.size()-1].fertile = true;
+  branchesArray.push_back( trunksArray[trunksArray.size()-1]);
 
-  branchesArray[branchesArray.size()-1].fertile = true;
-  branchesArray[branchesArray.size()-1].depth = 10;
   // Imita il comportamento di un while
   // branchesArray = _branches
   // branch.influenceArray = _activeAttractors
   int fertileBranches = 1;
   while(fertileBranches > 0){
     for (Branch currentBranch : branchesArray) {
-      if (fertileBranches > 0) {
+      if (fertileBranches > 0 && currentBranch.fertile) {
         vec3f dir;
         try {
           findInfluenceSet(currentBranch, crown);
@@ -232,7 +233,7 @@ void run(const vector<string>& args) {
 
         } else {
           currentBranch.fertile = false;
-          fertileBranches       = fertileBranches - defertilize(&currentBranch);
+          fertileBranches--;
           cout << "fertileDown " << fertileBranches << endl;
           clearInfluenceSet(currentBranch);
         }
