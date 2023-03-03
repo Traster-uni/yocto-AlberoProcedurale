@@ -178,14 +178,16 @@ void run(const vector<string>& args) {
       2,
       1,
       false,
-      0.1,
+      false,
+      false,
+      false,
       false};
   branchesArray.push_back(trunkBranch);
   auto a = branchesArray[branchesArray.size() - 1 ];
-  Branch growingBranch = growChildBranch(trunkBranch, rndDirection(trunkBranch, seedrnd));
+  Branch growingBranch = growChild(trunkBranch, rndDirection(trunkBranch, seedrnd));
   branchesArray.push_back(growingBranch);
   while (checkHeight(growingBranch, minVec3f.coords)){
-    growingBranch = growChildBranch(trunkBranch, trunkGrowthDir);
+    growingBranch = growChild(trunkBranch, trunkGrowthDir);
     growingBranch.fertile = false;
     trunkBranch = growingBranch;
     branchesArray.push_back(growingBranch);
@@ -209,44 +211,24 @@ void run(const vector<string>& args) {
   fertileArray.push_back(c._id);
   while(!fertileArray.empty()) {
     vec3f dir;
-    try {
+//    try {
       findInfluenceSet(c, crown);
       dir = computeDirection(c, seedrnd);
+      c.fertile = isFertile(c);
       cout << "Found an Influence set: " << c.influencePoints.size() << endl;
-    } catch (NoInfluencePointsInRange& err) {
-      cerr << "[204]" << err.what() << endl;
+//    } catch (NoInfluencePointsInRange& err) {
+//      cerr << "[204]" << err.what() << endl;
+      c.fertile = isFertile(c);
       dir = rndDirection(c, seedrnd);
       cout << "---->No InfluencePoints for branch: " << c._id << " -> randomized" << endl;
       cout << "     |---- InfluenceSet size: " <<  c.influencePoints.size() << endl;
     }
 
-    if (isFertile(c) && c.fertile){
-      cout << "( ~ ) Branch " << c._id << " was already FERTILE, NO INCREMENT" << endl;
-      newBranch = growChildBranch(c, dir);
-      cout << ">>>>>>> Distance between branch and child: " << distance(newBranch._end, c._end) << endl;
-      auto b = crown.attractionPointsArray.size();
-      deleteAttractionPoints(c, crown);
-      cout << "Deleted " << b-crown.attractionPointsArray.size() << " attraction points" << endl;
-      clearInfluenceSet(c);
-      branchesArray.push_back(newBranch);
-      c = newBranch;
-      // MODELS
-      auto b1_instance    = branchInstanceData;
-      b1_instance.frame.o = newBranch._start;
-      scene.instances.push_back(b1_instance);
-      //
-      // MODELS
-      auto b2_instance    = branchInstanceData;
-      b2_instance.frame.o = newBranch._end;
-      scene.instances.push_back(b2_instance);
-      //
-
-    }else if (isFertile(c) && !c.fertile) {
-      c.fertile = true;
+    if (c.fertile) {
       cout << "( + ) Branch " << c._id << " is FERTILE" << endl;
       fertileArray.push_back(c._id);
       cout << "fertileBranches: " << fertileArray.size() << " INCREMENTED" << endl;
-      newBranch = growChildBranch(c, dir);
+      newBranch = growChild(c, dir);
       cout << ">>>>>>> Distance between branch and child: " << distance(newBranch._end, c._end) << endl;
       auto b = crown.attractionPointsArray.size();
       deleteAttractionPoints(c, crown);
@@ -265,21 +247,17 @@ void run(const vector<string>& args) {
       scene.instances.push_back(b2_instance);
       //
 
-    } else if (!isFertile(c) && c.fertile) {
-      c.fertile       = false;
-      for (auto f: range(fertileArray.size())){
-        if (fertileArray[f] == c._id){
+    } else {
+      for (auto f : range(fertileArray.size())) {
+        if (fertileArray[f] == c._id) {
           fertileArray.erase(fertileArray.begin() + f);
         }
       }
       cout << "( - ) Branch " << c._id << " is NOT fertile anymore" << endl;
       cout << "fertileBranches: " << fertileArray.size() << " DECREMENTED" << endl;
       clearInfluenceSet(c);
-
-    } else if (!isFertile(c) && !c.fertile){
-      cout << " //  NOTHING  // " << endl;
-      continue ;
     }
+    break ;
   }
 
 

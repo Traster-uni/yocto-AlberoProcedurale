@@ -37,34 +37,20 @@ typedef struct Branch {
   vec3f     _end;
   vec3f     _direction;
   float     _length;
-  int       _id;
+  unsigned long long _id;
   Branch*   father_ptr{};  // puntatore al branch padre
   vector<Branch> children;
   vector<attrPoint3f> influencePoints;
-//  int   depth; //numero di discendenti
   int   maxBranches; // definisce il numero massimo di figli generabili
   int   minBranches; // definisce il numero minimo di figli da generare
-  bool  fertile;      // definisce se il nodo è fertile o meno
+  int   depth;
   float trunkDiameter; // Diametro del tronco sul punto.
-  bool  leaf;
+  bool  fertile;      // definisce se il nodo è fertile o meno
+  bool  trunk;        // is trunk
+  bool  branch;       // is branch
+  bool  leaf;         // is leaf
 } Branch;
 
-// ERRORS
-
-class NoFertileBranch : public runtime_error{
- public:
-  NoFertileBranch(const string& arg) : runtime_error(arg){}
-};
-
-class NoInfluencePointsInRange : public runtime_error{
- public:
-  NoInfluencePointsInRange(const string& arg): runtime_error(arg) {}
-};
-
-class TreeNotDefined : public runtime_error{
- public:
-  TreeNotDefined(const string& arg) : runtime_error(arg) {}
-};
 
 // UTIL FUNCTIONS
 int randomSeed(bool random, int interval_start, int interval_end) {
@@ -132,7 +118,7 @@ float scaleLength(float previousLength, string treeName){
          return previousLength - value;
         }
   }
-  throw TreeNotDefined("Tree was not defined");
+  return 0.0f;
 }
 
 
@@ -181,8 +167,18 @@ bool checkHeight(Branch current, vec3f minVec) { return current._end.y < minVec.
 
 
 bool isFertile(Branch& current){
-  if (current.children.size() < current.maxBranches &&
-      !current.influencePoints.empty()){
+  if (current.depth == 0){
+        return false;
+  }else if (current.children.size() < current.maxBranches &&
+             !current.influencePoints.empty()){
+        return true;
+  }
+  return false;
+}
+
+
+bool canBranch(){
+  if (randomSeed(true, 0, 10) <= 1){
         return true;
   }
   return false;
@@ -211,9 +207,6 @@ void findInfluenceSet(Branch& current, attractionPoints& treeCrown) {
       current.influencePoints.push_back(ap);
     }
   }
-  if (current.influencePoints.empty()){
-    throw NoInfluencePointsInRange("No attraction points in range"s);
-  }
 }
 
 
@@ -224,13 +217,13 @@ vec3f computeDirection(Branch& fatherBranch, int seed){
   float denom;
   for (auto& ip : fatherBranch.influencePoints) {
     auto ip_local = ip;
-    num = ip_local.coords -= fatherBranch._end;
+    num = ip_local.coords - fatherBranch._end;
     denom  = sqrt(dot(num, num));
-    newDir = newDir += vec3f{num.x / denom, num.y / denom, num.z / denom};
+    newDir += vec3f{num.x / denom, num.y / denom, num.z / denom};
   }
-  newDir = newDir /= fatherBranch.influencePoints.size();
+  newDir /= fatherBranch.influencePoints.size();
   auto newDir_norm = sqrt(dot(newDir, newDir));
-  return (newDir /= newDir_norm) += rand3f(rng);
+  return (newDir / newDir_norm) + rand3f(rng);
 }
 
 
@@ -240,19 +233,21 @@ vec3f rndDirection(Branch& fatherBranch, int seed){
 }
 
 
-Branch growChildBranch(Branch& fatherBranch, vec3f direction){
-    Branch newBranch;
-    newBranch._start      = fatherBranch._end;
-    newBranch._direction  = direction *= fatherBranch._length;
-    newBranch._end = newBranch._direction += newBranch._start;
-    newBranch._length     = fatherBranch._length;
-    newBranch._id = fatherBranch._id + 1;
-    newBranch.father_ptr  = &fatherBranch;
-    newBranch.fertile = true;
-    newBranch.maxBranches = fatherBranch.maxBranches;
-    newBranch.minBranches = fatherBranch.minBranches;
-    fatherBranch.children.push_back(newBranch);
-    return newBranch;
+Branch growChild(Branch& fatherBranch, vec3f direction, int counter){
+  Branch newBranch;
+  newBranch._start      = fatherBranch._end;
+  newBranch._direction  = direction * fatherBranch._length;
+  newBranch._end        = newBranch._direction + fatherBranch._end;
+  newBranch._length     = fatherBranch._length;
+  newBranch._id         = counter;
+  newBranch.father_ptr  = &fatherBranch;
+  newBranch.fertile     = false;
+  newBranch.maxBranches = fatherBranch.maxBranches;
+  newBranch.minBranches = fatherBranch.minBranches;
+  newBranch.depth = fatherBranch.depth-1;
+  newBranch.branch = canBranch();
+  fatherBranch.children.push_back(newBranch);
+  return newBranch;
 }
 
 
