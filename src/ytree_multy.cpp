@@ -206,20 +206,22 @@ void run(const vector<string>& args) {
 
   std::unordered_set<unsigned long long > fertileSet = { treeArray[treeArray.size()-1]._id }; // first fertile branch._id pushed into control array
   while(!fertileSet.empty()){
-    for (Branch& current : treeArray){
-      findInfluenceSet(current, crown);
-      cout << " # InfluenceSet: " << current.influencePoints.size() << endl;
-      if (isFertile(current)) {
-        current.fertile = true;
-        fertileSet.insert(current._id);
-        cout << " # + the Branch inserted is: " << current._id << endl;
-      } else {
-        current.fertile = false;
-        fertileSet.erase(current._id);
-        current.branch = false;
-        current.leaf = true;
+    for (Branch& current : treeArray) {
+      if (!current.trunk) {
+        findInfluenceSet(current, crown);
+        cout << " # InfluenceSet: " << current.influencePoints.size() << endl;
+        if (isFertile(current)) {
+          current.fertile = true;
+          fertileSet.insert(current._id);
+          cout << " # + the Branch inserted is: " << current._id << endl;
+        } else {
+          current.fertile = false;
+          fertileSet.erase(current._id);
+          current.branch = false;
+          current.leaf   = true;
+        }
+        cout << "^ fertileSet.size= " << fertileSet.size() << " ^" << endl;
       }
-      cout << "^ fertileSet.size= " << fertileSet.size() << " ^"<< endl;
     }
     for (Branch& current: treeArray){
       if (current.fertile){
@@ -228,22 +230,19 @@ void run(const vector<string>& args) {
         b_instance.frame.o = current._start;
         scene.instances.push_back(b_instance);
         //
-
         auto dir = computeDirection(current, seedrnd);
 
         if (current.children.size() < current.minBranches) {
           Branch child = growChild(current, dir, ++idCounter);
           child.trunk  = false;
           treeArray.push_back(child);
-          deleteAttractionPoints(current, crown);
-          clearInfluenceSet(current);
         }else if (current.branch && current.children.size() < current.maxBranches){
           Branch child = growChild(current, dir, ++idCounter);
           child.trunk  = false;
           treeArray.push_back(child);
-          deleteAttractionPoints(current, crown);
-          clearInfluenceSet(current);
         }
+        deleteAttractionPoints(current, crown);
+        clearInfluenceSet(current);
       }
     }
   }
