@@ -21,8 +21,8 @@ using namespace std::string_literals;
 // main function
 void run(const vector<string>& args) {
   // parameters
-  auto scenename   = "scene.json"s;
-//  auto scenename = R"(C:\yocto-AlberoProcedurale\tests\tests_assets\node_crown\node_crown_test.json)"s;
+//  auto scenename   = "scene.json"s;
+  auto scenename = R"(C:\yocto-AlberoProcedurale\tests\tests_assets\node_crown\node_crown_test.json)"s;
 //  auto scenename = "/home/tommasomarialopedote/Computer-graphics-project/yocto-AlberoProcedurale/tests/tests_assets/node_crown/node_crown_test.json"s;
   auto outname     = "point_image.png"s;
   auto paramsname  = ""s;
@@ -35,12 +35,12 @@ void run(const vector<string>& args) {
   auto dumpname    = ""s;
   //custom
   auto rnd_input = false;
-  auto num_attrPoint = ""s;
-//  auto num_attrPoint = "2000"s;
-  auto attr_range = ""s;
-//  auto attr_range = "0.3"s;
-  auto kill_range = ""s;
-//  auto kill_range = "0.2"s;
+//  auto num_attrPoint = ""s;
+  auto num_attrPoint = "4500"s;
+//  auto attr_range = ""s;
+  auto attr_range = "0.35"s;
+//  auto kill_range = ""s;
+  auto kill_range = "0.25"s;
   auto treeType = ""s;
 
   auto params      = trace_params{};
@@ -133,13 +133,17 @@ void run(const vector<string>& args) {
   crown.radiusInfluence = stof(attr_range);
   crown.killDistance = stof(kill_range);
   vector<Branch> treeArray; // a collection of all branches in the tree
-  int idCounter; // counter for branches
+  // random generator
+  random_device rdmGenerator;
+  mt19937 rdm(rdmGenerator());
   // GENERATE THE CROWN OF ATTRACTION POINT
   // seeding
-  auto seedrnd = randomSeed(rnd_input, 0, 100000);
+  auto seedrnd = randomSeed(rnd_input, 0, 100000, rdm);
   print_info("uniform seeding: {}, no random seed -> 58380", seedrnd);
   // genertion
-  crown.attractionPointsArray = populateSphere(stoi(num_attrPoint), seedrnd);
+  crown.attractionPointsArray = populateSphere(stoi(num_attrPoint), seedrnd, rdm);
+  auto gfdg = sample_sphere(rdm);
+  cout << "sampleSphere() : " << gfdg.x << ", " << gfdg.y << ", " << gfdg.z <<  endl;
   // sort attraction points vertically
   quicksort_attrPoint3f(crown.attractionPointsArray, 0, crown.attractionPointsArray.size());
   // l'attraction Point piu' basso.
@@ -166,8 +170,8 @@ void run(const vector<string>& args) {
   auto trunkBranch = Branch{
       floorPos,
       floorPos += trunkGrowthDir,
-      trunkGrowthDir *= 0.2,
-      0.2,
+      trunkGrowthDir *= 0.3,
+      0.3,
       0,
       nullptr,
       vector<Branch>(),
@@ -181,11 +185,11 @@ void run(const vector<string>& args) {
       false};
   treeArray.push_back(trunkBranch);
 
-  Branch growingBranch = growChild(trunkBranch, rndDirection(trunkBranch, seedrnd), ++idCounter);
+  Branch growingBranch = growChild(trunkBranch, rndDirection(trunkBranch, seedrnd), rdm);
   growingBranch.trunk = true;
   treeArray.push_back(growingBranch);
   while (checkHeight(growingBranch, minVec3f.coords)){
-    growingBranch = growChild(trunkBranch, trunkGrowthDir, ++idCounter);
+    growingBranch = growChild(trunkBranch, trunkGrowthDir, rdm);
     growingBranch.fertile = false;
     growingBranch.trunk = true;
     growingBranch.branch = false;
@@ -235,12 +239,12 @@ void run(const vector<string>& args) {
         auto dir = computeDirection(current, seedrnd);
 
         if (current.children.size() < current.minBranches) {
-          Branch child = growChild(current, dir, ++idCounter);
+          Branch child = growChild(current, dir, rdm);
           child.trunk  = false;
           treeArray.push_back(child);
 //          cout << " --1 " << current._id << " has grown a child" << endl;
         }else if (current.branch && current.children.size() < current.maxBranches){
-          Branch child = growChild(current, dir, ++idCounter);
+          Branch child = growChild(current, dir, rdm);
           child.trunk  = false;
           treeArray.push_back(child);
 //          cout << " --2 " << current._id << " has grown MORE THEN ONE child" << endl;

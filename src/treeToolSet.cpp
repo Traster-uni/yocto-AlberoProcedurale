@@ -2,6 +2,7 @@
 #include <random>
 #include <string>
 #include <vector>
+#include <cmath>
 
 #include "yocto/yocto_math.h"
 #include "yocto/yocto_shape.h"
@@ -52,25 +53,57 @@ typedef struct Branch {
 } Branch;
 
 
+//  function getPoint() {
+//    var u = Math.random();
+//    var x1 = randn();
+//    var x2 = randn();
+//    var x3 = randn();
+//
+//    var mag = Math.sqrt(x1*x1 + x2*x2 + x3*x3);
+//    x1 /= mag; x2 /= mag; x3 /= mag;
+//
+//    // Math.cbrt is cube root
+//    var c = Math.cbrt(u);
+//
+//    return {x: x1*c, y:x2*c, z:x3*c};
+//  }
+
 // UTIL FUNCTIONS
-int randomSeed(bool random, int interval_start, int interval_end) {
+auto sample_sphere(mt19937& generator){
+  uniform_real_distribution<float> floatDistribution(-1, 1);
+
+  vec3f rvc3f = {floatDistribution(generator), floatDistribution(generator), floatDistribution(generator)};
+//  cout << "[78]" << rvc3f.x << ", " << rvc3f.y << ", " << rvc3f.z << endl;
+  double mag = sum(sqrt(vec3f{ rvc3f.x*rvc3f.x, rvc3f.y*rvc3f.y, rvc3f.z*rvc3f.z}));
+//  auto a = vec3f{ rvc3f.x*rvc3f.x, rvc3f.y*rvc3f.y, rvc3f.z*rvc3f.z};
+//  cout << "sqrt: " << a.x << ", " << a.y << ", " << a.z << endl;
+//  auto b = sum(vec3f{ rvc3f.x*rvc3f.x, rvc3f.y*rvc3f.y, rvc3f.z*rvc3f.z});
+//  cout << "sum: " << b << endl;
+//  cout << "[80]" << mag << endl;
+  rvc3f /= mag;
+//  cout << rvc3f.x << ", " << rvc3f.y << ", " << rvc3f.z << endl;
+  auto c = ::cbrt(floatDistribution(generator));
+//  cout << "[84]" << c << endl;
+  return rvc3f * c;
+}
+
+
+int randomSeed(bool random, int interval_start, int interval_end, mt19937& generator) {
     if (!random) {
         return 58380;
     } else {
-        random_device generator;
-        mt19937 rdm(generator());
         uniform_int_distribution<int> intDistribution(interval_start, interval_end);
-        return intDistribution(rdm);
+        return intDistribution(generator);
     }
 }
 
 
-vector<attrPoint3f> populateSphere(int num_points, int seed) {
+vector<attrPoint3f> populateSphere(int num_points, int seed, mt19937& generator) {
   auto rng = make_rng(seed); // seed the generator
   vector<attrPoint3f> rdmPoints_into_sphere;
   int ID = 0;
   for (auto i : range(num_points)){
-        rdmPoints_into_sphere.push_back(attrPoint3f{sample_sphere(rand2f(rng)), ID});
+        rdmPoints_into_sphere.push_back(attrPoint3f{sample_sphere(generator), ID});
         ID++;
   }
   return rdmPoints_into_sphere;
@@ -177,8 +210,8 @@ bool isFertile(Branch& current){
 }
 
 
-bool canBranch(){
-  int rnd = randomSeed(true, 0, 100);
+bool canBranch(mt19937& generator){
+  int rnd = randomSeed(true, 0, 100, generator);
   if (rnd <= 20){
     return true;
   }
@@ -225,7 +258,7 @@ vec3f rndDirection(Branch& fatherBranch, int seed){
 }
 
 
-Branch growChild(Branch& fatherBranch, vec3f direction, int counter){
+Branch growChild(Branch& fatherBranch, vec3f direction, mt19937& generator){
   Branch newBranch;
   newBranch._start      = fatherBranch._end;
   newBranch._direction  = direction * fatherBranch._length;
@@ -237,7 +270,7 @@ Branch growChild(Branch& fatherBranch, vec3f direction, int counter){
   newBranch.maxBranches = fatherBranch.maxBranches;
   newBranch.minBranches = fatherBranch.minBranches;
   newBranch.depth = fatherBranch.depth-1;
-  newBranch.branch = canBranch();
+  newBranch.branch = canBranch(generator);
   fatherBranch.children.push_back(newBranch);
   return newBranch;
 }
