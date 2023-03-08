@@ -37,7 +37,7 @@ typedef struct Branch {
   vec3f     _end;
   vec3f     _direction;
   float     _length;
-  unsigned long long _id;
+  Branch*   _id;
   Branch*   father_ptr{};  // puntatore al branch padre
   vector<Branch> children;
   vector<attrPoint3f> influencePoints;
@@ -57,7 +57,7 @@ int randomSeed(bool random, int interval_start, int interval_end) {
     if (!random) {
         return 58380;
     } else {
-        random_device generator;  // non deterministic, if deterministic use
+        random_device generator;
         mt19937 rdm(generator());
         uniform_int_distribution<int> intDistribution(interval_start, interval_end);
         return intDistribution(rdm);
@@ -178,21 +178,13 @@ bool isFertile(Branch& current){
 
 
 bool canBranch(){
-  if (randomSeed(true, 0, 10) <= 1){
-        return true;
+  int rnd = randomSeed(true, 0, 100);
+  if (rnd <= 20){
+    return true;
   }
   return false;
 }
 
-
-bool checkGlobalFertility(vector<Branch>& branchesArray){
-  for (auto& b : branchesArray){
-    if (b.fertile){
-      return true;
-    }
-  }
-  return false;
-}
 
 // Structs modifications
 
@@ -223,7 +215,7 @@ vec3f computeDirection(Branch& fatherBranch, int seed){
   }
   newDir /= fatherBranch.influencePoints.size();
   auto newDir_norm = sqrt(dot(newDir, newDir));
-  return (newDir / newDir_norm) + rand3f(rng);
+  return (newDir / newDir_norm) + vec3f{0.1,0.1,0.1};
 }
 
 
@@ -239,7 +231,7 @@ Branch growChild(Branch& fatherBranch, vec3f direction, int counter){
   newBranch._direction  = direction * fatherBranch._length;
   newBranch._end        = newBranch._direction + fatherBranch._end;
   newBranch._length     = fatherBranch._length;
-  newBranch._id         = counter;
+  newBranch._id         = &newBranch;
   newBranch.father_ptr  = &fatherBranch;
   newBranch.fertile     = false;
   newBranch.maxBranches = fatherBranch.maxBranches;

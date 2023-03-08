@@ -21,8 +21,8 @@ using namespace std::string_literals;
 // main function
 void run(const vector<string>& args) {
   // parameters
-//  auto scenename   = "scene.json"s;
-  auto scenename = R"(C:\yocto-AlberoProcedurale\tests\tests_assets\node_crown\node_crown_test.json)"s;
+  auto scenename   = "scene.json"s;
+//  auto scenename = R"(C:\yocto-AlberoProcedurale\tests\tests_assets\node_crown\node_crown_test.json)"s;
 //  auto scenename = "/home/tommasomarialopedote/Computer-graphics-project/yocto-AlberoProcedurale/tests/tests_assets/node_crown/node_crown_test.json"s;
   auto outname     = "point_image.png"s;
   auto paramsname  = ""s;
@@ -35,15 +35,14 @@ void run(const vector<string>& args) {
   auto dumpname    = ""s;
   //custom
   auto rnd_input = false;
-//  auto num_attrPoint = ""s;
-  auto num_attrPoint = "2000"s;
-//  auto attr_range = ""s;
-  auto attr_range = "0.3"s;
-//  auto kill_range = ""s;
-  auto kill_range = "0.2"s;
+  auto num_attrPoint = ""s;
+//  auto num_attrPoint = "2000"s;
+  auto attr_range = ""s;
+//  auto attr_range = "0.3"s;
+  auto kill_range = ""s;
+//  auto kill_range = "0.2"s;
   auto treeType = ""s;
 
-  //
   auto params      = trace_params{};
   // parse command line
   auto cli = make_cli("ytree", "render a procedural tree with raytracing");
@@ -167,15 +166,15 @@ void run(const vector<string>& args) {
   auto trunkBranch = Branch{
       floorPos,
       floorPos += trunkGrowthDir,
-      trunkGrowthDir *= 0.15,
-      0.15,
+      trunkGrowthDir *= 0.2,
+      0.2,
       0,
       nullptr,
       vector<Branch>(),
       vector<attrPoint3f>(),
       2,
       1,
-      75,
+      60,
       0.1,
       false,
       true,
@@ -204,23 +203,26 @@ void run(const vector<string>& args) {
   treeArray[treeArray.size()-1].trunk = false;    // first branch is trunk no more
   treeArray[treeArray.size()-1].branch = true;    // first branch is now a branch
 
-  std::unordered_set<unsigned long long > fertileSet = { treeArray[treeArray.size()-1]._id }; // first fertile branch._id pushed into control array
+  std::unordered_set<Branch*> fertileSet = { treeArray[treeArray.size()-1]._id }; // first fertile branch._id pushed into control array
   while(!fertileSet.empty()){
     for (Branch& current : treeArray) {
       if (!current.trunk) {
+//        cout << " # Current Branch: " << current._id << endl;
         findInfluenceSet(current, crown);
-        cout << " # InfluenceSet: " << current.influencePoints.size() << endl;
+//        cout << " # InfluencePoints: " << current.influencePoints.size() << endl;
         if (isFertile(current)) {
           current.fertile = true;
           fertileSet.insert(current._id);
-          cout << " # + the Branch inserted is: " << current._id << endl;
+//          cout << " ( + ) the Branch INSERTED is: " << current._id << endl;
         } else {
           current.fertile = false;
+//          cout << "[220]FERTILE SET SIZE: " << fertileSet.size() << endl;
           fertileSet.erase(current._id);
+//          cout << " ( - ) the Branch DELETED is: " << current._id << endl;
+//          cout << "[223]FERTILE SET SIZE: " << fertileSet.size() << endl;
           current.branch = false;
           current.leaf   = true;
         }
-        cout << "^ fertileSet.size= " << fertileSet.size() << " ^" << endl;
       }
     }
     for (Branch& current: treeArray){
@@ -236,10 +238,12 @@ void run(const vector<string>& args) {
           Branch child = growChild(current, dir, ++idCounter);
           child.trunk  = false;
           treeArray.push_back(child);
+//          cout << " --1 " << current._id << " has grown a child" << endl;
         }else if (current.branch && current.children.size() < current.maxBranches){
           Branch child = growChild(current, dir, ++idCounter);
           child.trunk  = false;
           treeArray.push_back(child);
+//          cout << " --2 " << current._id << " has grown MORE THEN ONE child" << endl;
         }
         deleteAttractionPoints(current, crown);
         clearInfluenceSet(current);
