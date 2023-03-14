@@ -6,9 +6,8 @@ function(add_yapp name)
 endfunction()
 
 add_yapp(treeToolSet)
-add_yapp(ytree_single)
 add_yapp(ytree_multy)
-add_yapp(yTreeTriplanarMap)
+add_yapp(cylinderTest)
 
 
 

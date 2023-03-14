@@ -74,7 +74,7 @@ auto sample_sphere(mt19937& generator){
 
   vec3f rvc3f = {floatDistribution(generator), floatDistribution(generator), floatDistribution(generator)};
 //  cout << "[78]" << rvc3f.x << ", " << rvc3f.y << ", " << rvc3f.z << endl;
-  double mag = sum(sqrt(vec3f{ rvc3f.x*rvc3f.x, rvc3f.y*rvc3f.y, rvc3f.z*rvc3f.z}));
+  double mag = sqrt(sum(vec3f{ rvc3f.x*rvc3f.x, rvc3f.y*rvc3f.y, rvc3f.z*rvc3f.z}));
 //  auto a = vec3f{ rvc3f.x*rvc3f.x, rvc3f.y*rvc3f.y, rvc3f.z*rvc3f.z};
 //  cout << "sqrt: " << a.x << ", " << a.y << ", " << a.z << endl;
 //  auto b = sum(vec3f{ rvc3f.x*rvc3f.x, rvc3f.y*rvc3f.y, rvc3f.z*rvc3f.z});
@@ -82,7 +82,7 @@ auto sample_sphere(mt19937& generator){
 //  cout << "[80]" << mag << endl;
   rvc3f /= mag;
 //  cout << rvc3f.x << ", " << rvc3f.y << ", " << rvc3f.z << endl;
-  auto c = ::cbrt(floatDistribution(generator));
+  float c = ::cbrt(floatDistribution(generator));
 //  cout << "[84]" << c << endl;
   return rvc3f * c;
 }
