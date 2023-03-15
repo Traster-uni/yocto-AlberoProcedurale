@@ -211,7 +211,7 @@ void run(const vector<string>& args) {
     scene.instances.push_back(b_instance);
 
     auto c_model = transformShape(cylinder, computeAngles({0,0,0},growingBranch._direction), {1,1,1});
-    scene.shapes.push_back(c_model);
+    scene.shapes.push_back(cylinder);
     scene.instances.push_back(cy_inst);
     //
   }

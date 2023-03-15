@@ -97,14 +97,39 @@ int randomSeed(bool random, int interval_start, int interval_end, mt19937& gener
     }
 }
 
+// Per gentile concessione di Edoardo Ensoli.
+shape_data transformShape(shape_data& shape, vec3f rotate, vec3f scale) {
+  // transform shape
+  if (rotate != vec3f{0, 0, 0} || scale != vec3f{1, 1, 1}) {
+    auto scaling  = scaling_frame(scale);
+    auto rotation = rotation_frame({1, 0, 0}, radians(rotate.x)) *
+                    rotation_frame({0, 1, 0}, radians(rotate.y)) *
+                    rotation_frame({0, 0, 1}, radians(rotate.z));
+
+    auto xform = scaling * rotation;
+    for (auto& p : shape.positions) p = transform_point(xform, p);
+
+    auto nonuniform_scaling = min(scale) != max(scale);
+    for (auto& n : shape.normals)
+      n = transform_normal(xform, n, nonuniform_scaling);
+  }
+  return shape;
+}
+
+vec3f computeAngles(vec3f origin, vec3f direction){
+    auto num = origin * direction;
+    auto denum = sqrt(num);
+    auto alpha = num/denum;
+    return vec3f{acos(alpha.x), acos(alpha.y), acos(alpha.z)};
+}
 
 vector<attrPoint3f> populateSphere(int num_points, int seed, mt19937& generator) {
   auto rng = make_rng(seed); // seed the generator
   vector<attrPoint3f> rdmPoints_into_sphere;
   int ID = 0;
   for (auto i : range(num_points)){
-        rdmPoints_into_sphere.push_back(attrPoint3f{sample_sphere(generator), ID});
-        ID++;
+    rdmPoints_into_sphere.push_back(attrPoint3f{sample_sphere(generator), ID});
+    ID++;
   }
   return rdmPoints_into_sphere;
 }
