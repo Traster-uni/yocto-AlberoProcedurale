@@ -161,10 +161,12 @@ void run(const vector<string>& args) {
 
   // TREE TRUNK
   // branch render instance
+  auto cylinder = make_uvcylinder({32,32,32}, {1,1});
   auto branchInstanceData = instance_data{frame3f{{ModelScale,0,0},
                                                   {0,ModelScale,0},
                                                   {0,0,ModelScale},
                                                   floorPos}, 2, 2};
+
   // trunk instance and growth direction
   vec3f trunkGrowthDir = {0, 0.5, 0};
   auto trunkBranch = Branch{
@@ -188,6 +190,7 @@ void run(const vector<string>& args) {
   Branch growingBranch = growChild(trunkBranch, rndDirection(trunkBranch, seedrnd), rdm);
   growingBranch.trunk = true;
   treeArray.push_back(growingBranch);
+  int shapeIndex = scene.shapes.size();
   while (checkHeight(growingBranch, minVec3f.coords)){
     growingBranch = growChild(trunkBranch, trunkGrowthDir, rdm);
     growingBranch.fertile = false;
@@ -196,10 +199,20 @@ void run(const vector<string>& args) {
     trunkBranch = growingBranch;
     treeArray.push_back(growingBranch);
 
+    instance_data cy_inst = {frame3f{{ModelScale,0,0},
+                                    {0,ModelScale,0},
+                                    {0,0,ModelScale},
+                                    growingBranch._start},shapeIndex,3};
+    shapeIndex++;
+
     // MODELS
     auto b_instance    = branchInstanceData;
     b_instance.frame.o = trunkBranch._start;
     scene.instances.push_back(b_instance);
+
+    auto c_model = transformShape(cylinder, computeAngles({0,0,0},growingBranch._direction), {1,1,1});
+    scene.shapes.push_back(c_model);
+    scene.instances.push_back(cy_inst);
     //
   }
   // setup to grow crown
