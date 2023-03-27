@@ -97,7 +97,6 @@ int randomSeed(bool random, int interval_start, int interval_end, mt19937& gener
     }
 }
 
-// Per gentile concessione di Edoardo Ensoli.
 shape_data transformShape(shape_data& shape, vec3f rotate, vec3f scale) {
   // transform shape
   if (rotate != vec3f{0, 0, 0} || scale != vec3f{1, 1, 1}) {
@@ -116,11 +115,32 @@ shape_data transformShape(shape_data& shape, vec3f rotate, vec3f scale) {
   return shape;
 }
 
-vec3f computeAngles(vec3f origin, vec3f direction){
-    auto num = origin * direction;
-    auto denum = sqrt(num);
-    auto alpha = num/denum;
-    return vec3f{acos(alpha.x), acos(alpha.y), acos(alpha.z)};
+vec3f computeAngles(vec3f origin, vec3f direction) {
+  // plane y-z --> x rotation
+  if (origin == vec3f{0,0,0}){
+    auto num_yz = dot(
+        vec2f{origin.y, origin.z}, vec2f{direction.y, direction.z});
+    auto modOrigin_yz = sqrt(sqr(origin.y) + sqr(origin.z));
+    auto modDir_yz    = sqrt(sqr(direction.y) + sqr(direction.z));
+    auto denum_yz     = modOrigin_yz * modDir_yz;
+    float x_angle      = ::acos(num_yz / denum_yz);
+    // plane z-x --> y rotation
+    auto num_zx = dot(
+        vec2f{origin.z, origin.x}, vec2f{direction.z, direction.x});
+    auto modOrigin_zx = sqrt(sqr(origin.z) + sqr(origin.x));
+    auto modDir_zx    = sqrt(sqr(direction.z) + sqr(direction.x));
+    auto denum_zx     = modOrigin_zx * modDir_zx;
+    float y_angle      = ::acos(num_zx / denum_zx);
+    // plane x-y --> z rotation
+    auto num_xy = dot(
+        vec2f{origin.x, origin.y}, vec2f{direction.x, direction.y});
+    auto modOrigin_xy = sqrt(sqr(origin.x) + sqr(origin.y));
+    auto modDir_xy    = sqrt(sqr(direction.x) + sqr(direction.y));
+    auto denum_xy     = modOrigin_xy * modDir_xy;
+    float z_angle      = ::acos(num_xy / denum_xy);
+    return vec3f{x_angle,y_angle,z_angle};
+  }
+  return direction;
 }
 
 vector<attrPoint3f> populateSphere(int num_points, int seed, mt19937& generator) {

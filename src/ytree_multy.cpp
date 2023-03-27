@@ -161,11 +161,17 @@ void run(const vector<string>& args) {
 
   // TREE TRUNK
   // branch render instance
-  auto cylinder = make_uvcylinder({32,32,32}, {1,1});
   auto branchInstanceData = instance_data{frame3f{{ModelScale,0,0},
                                                   {0,ModelScale,0},
                                                   {0,0,ModelScale},
                                                   floorPos}, 2, 2};
+  // cylinder instance
+  int shapeCounter = 3; // counts the correct index for cy_inst to point to the correct model
+  instance_data cy_inst = {frame3f{
+                               {0.25, 0, 0},
+                               {0, 0.25, 0},
+                               {0, 0, 0.25},
+                           floorPos},shapeCounter,3};
 
   // trunk instance and growth direction
   vec3f trunkGrowthDir = {0, 0.5, 0};
@@ -190,7 +196,10 @@ void run(const vector<string>& args) {
   Branch growingBranch = growChild(trunkBranch, rndDirection(trunkBranch, seedrnd), rdm);
   growingBranch.trunk = true;
   treeArray.push_back(growingBranch);
-  int shapeIndex = scene.shapes.size();
+//  int shapeIndex = scene.shapes.size();
+
+  shape_data cyNeutral = make_uvcylinder({32,32,32}, {0.1, growingBranch._length});
+  shape_data copyNeutral = cyNeutral;
   while (checkHeight(growingBranch, minVec3f.coords)){
     growingBranch = growChild(trunkBranch, trunkGrowthDir, rdm);
     growingBranch.fertile = false;
@@ -199,19 +208,19 @@ void run(const vector<string>& args) {
     trunkBranch = growingBranch;
     treeArray.push_back(growingBranch);
 
-    instance_data cy_inst = {frame3f{{ModelScale,0,0},
-                                    {0,ModelScale,0},
-                                    {0,0,ModelScale},
-                                    growingBranch._start},shapeIndex,3};
-    shapeIndex++;
-
     // MODELS
+    vec3f rvecmod = computeAngles({0,0,1}, growingBranch._direction * 360);
+    shape_data transformCy = transformShape(copyNeutral, rvecmod, {0.6,0.6,0.6});
+    copyNeutral = cyNeutral;
+    scene.shapes.push_back(transformCy);
+    // spheres instances mods and push
     auto b_instance    = branchInstanceData;
     b_instance.frame.o = trunkBranch._start;
     scene.instances.push_back(b_instance);
-
-    auto c_model = transformShape(cylinder, computeAngles({0,0,0},growingBranch._direction), {1,1,1});
-    scene.shapes.push_back(cylinder);
+    //  cylinder instance mods and push
+    cy_inst.shape = shapeCounter++;
+    cout << shapeCounter << endl;
+    cy_inst.frame.o = growingBranch._start;
     scene.instances.push_back(cy_inst);
     //
   }
@@ -224,19 +233,13 @@ void run(const vector<string>& args) {
   while(!fertileSet.empty()){
     for (Branch& current : treeArray) {
       if (!current.trunk) {
-//        cout << " # Current Branch: " << current._id << endl;
         findInfluenceSet(current, crown);
-//        cout << " # InfluencePoints: " << current.influencePoints.size() << endl;
         if (isFertile(current)) {
           current.fertile = true;
           fertileSet.insert(current._id);
-//          cout << " ( + ) the Branch INSERTED is: " << current._id << endl;
         } else {
           current.fertile = false;
-//          cout << "[220]FERTILE SET SIZE: " << fertileSet.size() << endl;
           fertileSet.erase(current._id);
-//          cout << " ( - ) the Branch DELETED is: " << current._id << endl;
-//          cout << "[223]FERTILE SET SIZE: " << fertileSet.size() << endl;
           current.branch = false;
           current.leaf   = true;
         }
@@ -249,18 +252,16 @@ void run(const vector<string>& args) {
         b_instance.frame.o = current._start;
         scene.instances.push_back(b_instance);
         //
-        auto dir = computeDirection(current, seedrnd);
 
+        auto dir = computeDirection(current, seedrnd);
         if (current.children.size() < current.minBranches) {
           Branch child = growChild(current, dir, rdm);
           child.trunk  = false;
           treeArray.push_back(child);
-//          cout << " --1 " << current._id << " has grown a child" << endl;
         }else if (current.branch && current.children.size() < current.maxBranches){
           Branch child = growChild(current, dir, rdm);
           child.trunk  = false;
           treeArray.push_back(child);
-//          cout << " --2 " << current._id << " has grown MORE THEN ONE child" << endl;
         }
         deleteAttractionPoints(current, crown);
         clearInfluenceSet(current);

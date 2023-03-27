@@ -21,7 +21,8 @@ using namespace std::string_literals;
 // main function
 void run(const vector<string>& args) {
   // parameters
-  auto scenename = "/home/tommasomarialopedote/Computer-graphics-project/yocto-AlberoProcedurale/tests/tests_assets/cylinder_test/cylinder_test.json"s;
+//  auto scenename = "/home/tommasomarialopedote/Computer-graphics-project/yocto-AlberoProcedurale/tests/tests_assets/cylinder_test/cylinder_test.json"s;
+  auto scenename = R"(C:\yocto-AlberoProcedurale\tests\tests_assets\cylinder_test\cylinder_test.json)"s;
   auto outname     = "point_image.png"s;
   auto paramsname  = ""s;
   auto interactive = true;
@@ -83,15 +84,33 @@ void run(const vector<string>& args) {
   print_info("load scene: {}", elapsed_formatted(timer));
 
   //////////////////////////////////////////////////////////////////////////////
-  shape_data cy = make_uvcylinder({24,24,24}, {1.2,1.2});
+  // random generator
+  random_device rdmGenerator;
+  mt19937 rdm(rdmGenerator());
+  auto seedrnd = randomSeed(true, 0, 100000, rdm);
+  rng_state rng = make_rng(seedrnd);
+  //
+  shape_data cy = make_uvcylinder({32,32,32}, {0.3, 1});
   scene.shapes.push_back(cy);
-  instance_data cy_inst = {frame3f{
+  auto cy2 = cy;
+  auto angle = computeAngles({0,0,1}, rand3f(rng)*360);
+  cout << angle.x << ", " << angle.y << ", " << angle.z << endl;
+  transformShape(cy2, angle, {1,1,1});
+  scene.shapes.push_back(cy2);
+  instance_data cy_inst1 = {frame3f{
                                  {0.25,0,0},
                                  {0,0.25,0},
                                  {0,0,0.25},
-                                  {0, -0.5, 0}},1,1};
+                                  {0, -1.2, 0}},1,1};
+  instance_data cy_inst2 = {frame3f{
+                               {0.25,0,0},
+                               {0,0.25,0},
+                               {0,0,0.25},
+                               {0, -1, 0}},2,1};
 
-  scene.instances.push_back(cy_inst);
+  scene.instances.push_back(cy_inst1);
+  scene.instances.push_back(cy_inst2);
+
 
   //////////////////////////////////////////////////////////////////////////////
 

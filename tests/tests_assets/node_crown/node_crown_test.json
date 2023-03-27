@@ -64,6 +64,12 @@
       "color": [1, 1, 1],
       "color_tex": 2,
       "type": "matte"
+    },
+    {
+      "name": "cylinder",
+      "color": [1, 1, 1],
+      "color_tex": 2,
+      "type": "matte"
     }
   ],
   "shapes": [
