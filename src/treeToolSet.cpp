@@ -98,17 +98,52 @@ int randomSeed(bool random, int interval_start, int interval_end, mt19937& gener
 }
 
 
+vec3f computeAngles(vec3f origin, vec3f direction) {
+  vec3f rotation;
+  if (origin != vec3f{0,0,0}){
+    // plane y-z --> x rotation
+    if ((origin.y != 0 || origin.z != 0) && (direction.y != 0 || direction.z != 0)) {
+      auto num_yz = dot(vec2f{origin.y, origin.z}, vec2f{direction.y, direction.z});
+      auto modOrigin_yz = sqrt(sqr(origin.y) + sqr(origin.z));
+      auto modDir_yz    = sqrt(sqr(direction.y) + sqr(direction.z));
+      auto denum_yz     = modOrigin_yz * modDir_yz;
+      rotation.x        = ::acos(num_yz / denum_yz);
+    } else { rotation.x = 0; }
+
+    // plane z-x --> y rotation
+    if ((origin.x != 0 || origin.z != 0) && (direction.x != 0 || direction.z != 0)){
+      auto num_zx = dot(
+          vec2f{origin.z, origin.x}, vec2f{direction.z, direction.x});
+      auto modOrigin_zx = sqrt(sqr(origin.z) + sqr(origin.x));
+      auto modDir_zx    = sqrt(sqr(direction.z) + sqr(direction.x));
+      auto denum_zx     = modOrigin_zx * modDir_zx;
+      rotation.y        = ::acos(num_zx / denum_zx);
+    } else { rotation.y = 0; }
+
+    // plane x-y --> z rotation
+    if ((origin.x != 0 || origin.y != 0) && (direction.x != 0 || direction.y != 0)){
+      auto num_xy = dot(
+          vec2f{origin.x, origin.y}, vec2f{direction.x, direction.y});
+      auto modOrigin_xy = sqrt(sqr(origin.x) + sqr(origin.y));
+      auto modDir_xy    = sqrt(sqr(direction.x) + sqr(direction.y));
+      auto denum_xy     = modOrigin_xy * modDir_xy;
+      rotation.z        = ::acos(num_xy / denum_xy);
+    } else { rotation.z = 0; }
+    return rotation;
+  }
+  return direction;
+}
+
 vector<attrPoint3f> populateSphere(int num_points, int seed, mt19937& generator) {
   auto rng = make_rng(seed); // seed the generator
   vector<attrPoint3f> rdmPoints_into_sphere;
   int ID = 0;
   for (auto i : range(num_points)){
-        rdmPoints_into_sphere.push_back(attrPoint3f{sample_sphere(generator), ID});
-        ID++;
+    rdmPoints_into_sphere.push_back(attrPoint3f{sample_sphere(generator), ID});
+    ID++;
   }
   return rdmPoints_into_sphere;
 }
-
 
 
 float scaleTrunkDiameter(float previousDiameter, string treeName){

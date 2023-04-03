@@ -21,7 +21,8 @@ using namespace std::string_literals;
 // main function
 void run(const vector<string>& args) {
   // parameters
-  auto scenename = "/home/tommasomarialopedote/Computer-graphics-project/yocto-AlberoProcedurale/tests/tests_assets/cylinder_test/cylinder_test.json"s;
+//  auto scenename = "/home/tommasomarialopedote/Computer-graphics-project/yocto-AlberoProcedurale/tests/tests_assets/cylinder_test/cylinder_test.json"s;
+  auto scenename = R"(C:\yocto-AlberoProcedurale\tests\tests_assets\cylinder_test\cylinder_test.json)"s;
   auto outname     = "point_image.png"s;
   auto paramsname  = ""s;
   auto interactive = true;
@@ -83,15 +84,37 @@ void run(const vector<string>& args) {
   print_info("load scene: {}", elapsed_formatted(timer));
 
   //////////////////////////////////////////////////////////////////////////////
-  shape_data cy = make_uvcylinder({24,24,24}, {1.2,1.2});
+  // random generator
+  random_device rdmGenerator;
+  mt19937 rdm(rdmGenerator());
+  auto seedrnd = randomSeed(true, 0, 100000, rdm);
+  rng_state rng = make_rng(seedrnd);
+  //
+  vec2f cy_scale = {0.3, 1};
+  shape_data cy = make_uvcylinder({32,32,32}, cy_scale);
   scene.shapes.push_back(cy);
-  instance_data cy_inst = {frame3f{
+  auto cy2 = cy;
+
+  vec3f rotationAngles = computeAngles({0,0,1}, vec3f{0,1,0});
+  cout << rotationAngles.x << ", " << rotationAngles.y << ", " << rotationAngles.z << endl;
+
+  frame3f modForm;
+  auto translation = translation_frame({0,-1.2,cy_scale.y/2,});
+  auto scaling = scaling_frame({0.25, 0.25, 0.25});
+  auto rotation = rotation_frame({1,0,0}, rotationAngles.x) * rotation_frame({0,1,0}, rotationAngles.y) * rotation_frame({0,0,1},rotationAngles.z);
+  modForm = translation * scaling * rotation;
+
+  scene.shapes.push_back(cy2);
+  instance_data cy_inst1 = {frame3f{
                                  {0.25,0,0},
                                  {0,0.25,0},
                                  {0,0,0.25},
-                                  {0, -0.5, 0}},1,1};
+                                  {0, -1.0, cy_scale.y/2,}},1,1};
+  instance_data cy_inst2 = {modForm,2,1};
 
-  scene.instances.push_back(cy_inst);
+  scene.instances.push_back(cy_inst1);
+  scene.instances.push_back(cy_inst2);
+
 
   //////////////////////////////////////////////////////////////////////////////
 
