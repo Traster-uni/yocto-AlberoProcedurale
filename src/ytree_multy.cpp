@@ -128,31 +128,31 @@ void run(const vector<string>& args) {
    *        Modifica l'instanza standard con il vettore posizione corretto (scene.frame.o);
    *        Inserisci la nuova istanza nella scena;
    */
+
   // INSTANCES
   attractionPoints crown;
-  crown.radiusInfluence = stof(attr_range);
-  crown.killDistance = stof(kill_range);
   vector<Branch> treeArray; // a collection of all branches in the tree
   // random generator
   random_device rdmGenerator;
   mt19937 rdm(rdmGenerator());
+  // string conversions
+  crown.radiusInfluence = stof(attr_range);
+  crown.killDistance = stof(kill_range);
   // GENERATE THE CROWN OF ATTRACTION POINT
   // seeding
   auto seedrnd = randomSeed(rnd_input, 0, 100000, rdm);
   print_info("uniform seeding: {}, no random seed -> 58380", seedrnd);
-  // genertion
+  // generation
   crown.attractionPointsArray = populateSphere(stoi(num_attrPoint), seedrnd, rdm);
-  auto gfdg = sample_sphere(rdm);
-  cout << "sampleSphere() : " << gfdg.x << ", " << gfdg.y << ", " << gfdg.z <<  endl;
+
   // sort attraction points vertically
   quicksort_attrPoint3f(crown.attractionPointsArray, 0, crown.attractionPointsArray.size());
   // l'attraction Point piu' basso.
   auto minVec3f = crown.attractionPointsArray[0];
-  print_info("minYvec3f= {}, {}, {}", minVec3f.coords.x, minVec3f.coords.y, minVec3f.coords.z);
+
   // modeling for attrPoints
   float ModelScale = 0.4;
   auto floorPos = scene.instances[0].frame.o;
-  print_info("floorPos= {},{},{}", floorPos.x, floorPos.y, floorPos.z);
   auto  attractionPointInstance = instance_data{frame3f{{ModelScale,0,0},
                                                               {0,ModelScale,0},
                                                               {0,0,ModelScale},
@@ -198,8 +198,6 @@ void run(const vector<string>& args) {
   treeArray.push_back(growingBranch);
 //  int shapeIndex = scene.shapes.size();
 
-  shape_data cyNeutral = make_uvcylinder({32,32,32}, {0.1, growingBranch._length});
-  shape_data copyNeutral = cyNeutral;
   while (checkHeight(growingBranch, minVec3f.coords)){
     growingBranch = growChild(trunkBranch, trunkGrowthDir, rdm);
     growingBranch.fertile = false;
@@ -209,20 +207,9 @@ void run(const vector<string>& args) {
     treeArray.push_back(growingBranch);
 
     // MODELS
-    vec3f rvecmod = computeAngles({0,0,1}, growingBranch._direction * 360);
-    shape_data transformCy = transformShape(copyNeutral, rvecmod, {0.6,0.6,0.6});
-    copyNeutral = cyNeutral;
-    scene.shapes.push_back(transformCy);
-    // spheres instances mods and push
     auto b_instance    = branchInstanceData;
     b_instance.frame.o = trunkBranch._start;
     scene.instances.push_back(b_instance);
-    //  cylinder instance mods and push
-    cy_inst.shape = shapeCounter++;
-    cout << shapeCounter << endl;
-    cy_inst.frame.o = growingBranch._start;
-    scene.instances.push_back(cy_inst);
-    //
   }
   // setup to grow crown
   treeArray[treeArray.size()-1].fertile = true;   // first branch is forcebly fertile;
@@ -268,22 +255,20 @@ void run(const vector<string>& args) {
       }
     }
   }
-//  // MODELS
-//  auto b_instance    = branchInstanceData;
-//  b_instance.frame.o = growingBranch._start;
-//  scene.instances.push_back(b_instance);
-//  //
-  /**
-   *  se un branch e' fertile:
-   *    posso calcolarci la parobabilita' di avere altri figli
-   *
-   *  se posso averere altri figli branch e' true
-   *
-   *  quando ho raggiunto maxBranches == children.size()
-   *
-   *
-   */
-  // MODELS
+
+  // CYLINDERS MODELS
+  for (const Branch& b : treeArray){
+    shape_data defaultCylinder = make_uvcylinder({32,32,32}, {0.1, b._length});
+    vec3f angles = computeAngles({0,0,1}, b._direction);
+    shape_data transformCy = transformShape(defaultCylinder, angles, {0.6,0.6,0.6});
+    scene.shapes.push_back(transformCy);
+    //  cylinder instance setting and push
+    cy_inst.shape = shapeCounter++;
+    cy_inst.frame.o = b._start;
+    scene.instances.push_back(cy_inst);
+  }
+
+  // SPHERES MODELS
   for (auto ap : crown.attractionPointsArray){
     auto aP_instance = attractionPointInstance;
     aP_instance.frame.o = ap.coords;
