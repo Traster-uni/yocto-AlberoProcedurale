@@ -94,7 +94,7 @@ void run(const vector<string>& args) {
   shape_data cy = make_uvcylinder({32,32,32}, cy_scale);
   scene.shapes.push_back(cy);
   auto cy2 = cy;
-  auto r = rand3f(rng);
+
   vec3f rotationAngles = computeAngles({0,0,1}, vec3f{0,1,0});
   cout << rotationAngles.x << ", " << rotationAngles.y << ", " << rotationAngles.z << endl;
 
@@ -103,7 +103,7 @@ void run(const vector<string>& args) {
   auto scaling = scaling_frame({0.25, 0.25, 0.25});
   auto rotation = rotation_frame({1,0,0}, rotationAngles.x) * rotation_frame({0,1,0}, rotationAngles.y) * rotation_frame({0,0,1},rotationAngles.z);
   modForm = translation * scaling * rotation;
-//  modForm.o = {0, -1.2, 0};
+
   scene.shapes.push_back(cy2);
   instance_data cy_inst1 = {frame3f{
                                  {0.25,0,0},

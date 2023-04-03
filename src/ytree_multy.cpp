@@ -165,21 +165,14 @@ void run(const vector<string>& args) {
                                                   {0,ModelScale,0},
                                                   {0,0,ModelScale},
                                                   floorPos}, 2, 2};
-  // cylinder instance
-  int shapeCounter = 3; // counts the correct index for cy_inst to point to the correct model
-  instance_data cy_inst = {frame3f{
-                               {0.25, 0, 0},
-                               {0, 0.25, 0},
-                               {0, 0, 0.25},
-                           floorPos},shapeCounter,3};
 
   // trunk instance and growth direction
   vec3f trunkGrowthDir = {0, 0.5, 0};
   auto trunkBranch = Branch{
       floorPos,
       floorPos += trunkGrowthDir,
-      trunkGrowthDir *= 0.3,
-      0.3,
+      trunkGrowthDir *= 0.4,
+      0.4,
       0,
       nullptr,
       vector<Branch>(),
@@ -257,14 +250,21 @@ void run(const vector<string>& args) {
   }
 
   // CYLINDERS MODELS
-  for (const Branch& b : treeArray){
-    shape_data defaultCylinder = make_uvcylinder({32,32,32}, {0.1, b._length});
-    vec3f angles = computeAngles({0,0,1}, b._direction);
-    shape_data transformCy = transformShape(defaultCylinder, angles, {0.6,0.6,0.6});
-    scene.shapes.push_back(transformCy);
-    //  cylinder instance setting and push
-    cy_inst.shape = shapeCounter++;
-    cy_inst.frame.o = b._start;
+//  int shapeCounter = 3; // counts the correct index for cy_inst to point to the correct model
+  shape_data defaultCylinder = make_uvcylinder({32,32,32}, {0.5, 1});
+  scene.shapes.push_back(defaultCylinder);
+
+  for (Branch b : treeArray){
+    vec3f rotationAngles = computeAngles({0,0,1}, b._direction);
+    frame3f modFrame;
+    b._start.z += ModelScale/2;
+    frame3f translation = translation_frame(b._start);
+    frame3f scaling = scaling_frame({ModelScale, ModelScale, ModelScale});
+    frame3f rotation = rotation_frame({1,0,0}, rotationAngles.x) *
+                       rotation_frame({0,1,0}, rotationAngles.y) *
+                       rotation_frame({0,0,1}, rotationAngles.z);
+    modFrame = translation * scaling * rotation;
+    instance_data cy_inst = {modFrame,3,3};
     scene.instances.push_back(cy_inst);
   }
 
