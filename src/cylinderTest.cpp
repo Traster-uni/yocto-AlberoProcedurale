@@ -21,8 +21,8 @@ using namespace std::string_literals;
 // main function
 void run(const vector<string>& args) {
   // parameters
-//  auto scenename = "/home/tommasomarialopedote/Computer-graphics-project/yocto-AlberoProcedurale/tests/tests_assets/cylinder_test/cylinder_test.json"s;
-  auto scenename = R"(C:\yocto-AlberoProcedurale\tests\tests_assets\cylinder_test\cylinder_test.json)"s;
+  auto scenename = "/home/tommasomarialopedote/Computer-graphics-project/yocto-AlberoProcedurale/tests/tests_assets/cylinder_test/cylinder_test.json"s;
+//  auto scenename = R"(C:\yocto-AlberoProcedurale\tests\tests_assets\cylinder_test\cylinder_test.json)"s;
   auto outname     = "point_image.png"s;
   auto paramsname  = ""s;
   auto interactive = true;
@@ -90,27 +90,71 @@ void run(const vector<string>& args) {
   auto seedrnd = randomSeed(true, 0, 100000, rdm);
   rng_state rng = make_rng(seedrnd);
   //
-  vec2f cy_scale = {0.3, 1};
-  shape_data cy = make_uvcylinder({32,32,32}, cy_scale);
+  vec3f bs1 = {0,-1,0};
+  vec3f be1 = {0,-1.2,0};
+  vec3f v1 = (be1 - bs1) / yocto::sqrt(dot(be1 - bs1, be1 - bs1));
+  vec3f bs2 = be1;
+  vec3f be2 = {-0.2, -0.8, 0};
+  vec3f v2 = (be2 - bs2) / yocto::sqrt(dot(be2 - bs2, be2 - bs2));
+
+  auto  attrInst1 = instance_data{frame3f{{0.25,0,0},
+                                                   {0,0.25,0},
+                                                   {0,0,0.25},
+                                                   bs1},1, 2};
+  auto  attrInst2 = instance_data{frame3f{{0.25,0,0},
+                                      {0,0.25,0},
+                                      {0,0,0.25},
+                                     be1},1, 2};
+  auto  attrInst3 = instance_data{frame3f{{0.25,0,0},
+                                      {0,0.25,0},
+                                      {0,0,0.25},
+                                     bs2},1, 2};
+  auto  attrInst4 = instance_data{frame3f{{0.25,0,0},
+                                      {0,0.25,0},
+                                      {0,0,0.25},
+                                     be2},1, 2};
+  scene.instances.push_back(attrInst1);
+  scene.instances.push_back(attrInst2);
+  scene.instances.push_back(attrInst3);
+  scene.instances.push_back(attrInst4);
+
+  auto angle1 = computeAngles({0,0,1}, v1);
+  auto angle2 = computeAngles({0,0,1}, v2);
+
+  /*
+   * Poni due vettori ad angoli diversi e usali come direzionatori dei modelli dei cilindri.
+   * Allinea i cilindiri di modo che il capo di uno sia connesso alla coda dell'altro.
+   * Scala le la lungezza dei cilindri in modo che abbiano un diametro inferiore alla lunghezza,
+   *  non usare il campo scale di make_uvcylinder.
+   */
+
+  vec2f cy_scale1 = {0.3, distance(bs1, be1)};
+  vec2f cy_scale2 = {0.3, distance(bs2, be2)};
+  shape_data cy = make_uvcylinder({32,32,32}, cy_scale1);
   scene.shapes.push_back(cy);
-  auto cy2 = cy;
 
-  vec3f rotationAngles = computeAngles({0,0,1}, vec3f{0,1,0});
-  cout << rotationAngles.x << ", " << rotationAngles.y << ", " << rotationAngles.z << endl;
 
-  frame3f modForm;
-  auto translation = translation_frame({0,-1.2,cy_scale.y/2,});
-  auto scaling = scaling_frame({0.25, 0.25, 0.25});
-  auto rotation = rotation_frame({1,0,0}, rotationAngles.x) * rotation_frame({0,1,0}, rotationAngles.y) * rotation_frame({0,0,1},rotationAngles.z);
-  modForm = translation * scaling * rotation;
 
-  scene.shapes.push_back(cy2);
-  instance_data cy_inst1 = {frame3f{
-                                 {0.25,0,0},
-                                 {0,0.25,0},
-                                 {0,0,0.25},
-                                  {0, -1.0, cy_scale.y/2,}},1,1};
-  instance_data cy_inst2 = {modForm,2,1};
+  frame3f modForm1;
+  auto translation1 = translation_frame({0,-1,0});
+  auto scaling1 = scaling_frame({0.25, 0.25, 0.25});
+  auto rotation1 = rotation_frame({1,0,0}, angle1.x) * rotation_frame({0,1,0}, angle1.y) * rotation_frame({0,0,1}, angle1.z);
+  modForm1 = rotation1 * translation1 * scaling1;
+
+  frame3f modForm2;
+  auto translation2 = translation_frame({0,-1.2,0});
+  auto scaling2 = scaling_frame({0.25, 0.25, 0.25});
+  auto rotation2 = rotation_frame({1,0,0}, angle2.x) * rotation_frame({0,1,0}, angle2.y) * rotation_frame({0,0,1}, angle2.z);
+  modForm2 = rotation2 * translation2 * scaling2;
+
+  cout << v1.x << ", " << v1.y << ", " << v1.y << endl;
+  cout << angle1.x << ", " << angle1.y << ", " << angle1.z << endl;
+  cout << v2.x << ", " << v2.y << ", " << v2.z << endl;
+  cout << angle2.x << ", " << angle2.y << ", " << angle2.z << endl;
+
+
+  instance_data cy_inst1 = {modForm1, 2,1};
+  instance_data cy_inst2 = {modForm2, 2, 1};
 
   scene.instances.push_back(cy_inst1);
   scene.instances.push_back(cy_inst2);

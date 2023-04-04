@@ -36,6 +36,10 @@
     {
       "name": "cylinder",
       "uri": "textures/cylinder.png"
+    },
+    {
+      "name": "attraction_tex",
+      "uri": "textures/attraction_tex.png"
     }
   ],
   "materials": [
@@ -50,12 +54,22 @@
       "color": [1,1,1],
       "color_tex": 2,
       "type": "matte"
+    },
+    {
+      "name": "attracton_point",
+      "color": [1,1,1],
+      "color_tex": 3,
+      "type": "matte"
     }
   ],
   "shapes": [
     {
       "name": "floor",
       "uri": "shapes/floor.ply"
+    },
+    {
+      "name": "point",
+      "uri": "shapes/tree_point.ply"
     }
   ],
   "instances": [

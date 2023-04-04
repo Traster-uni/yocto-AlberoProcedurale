@@ -22,8 +22,8 @@ using namespace std::string_literals;
 void run(const vector<string>& args) {
   // parameters
 //  auto scenename   = "scene.json"s;
-  auto scenename = R"(C:\yocto-AlberoProcedurale\tests\tests_assets\node_crown\node_crown_test.json)"s;
-//  auto scenename = "/home/tommasomarialopedote/Computer-graphics-project/yocto-AlberoProcedurale/tests/tests_assets/node_crown/node_crown_test.json"s;
+//  auto scenename = R"(C:\yocto-AlberoProcedurale\tests\tests_assets\node_crown\node_crown_test.json)"s;
+  auto scenename = "/home/tommasomarialopedote/Computer-graphics-project/yocto-AlberoProcedurale/tests/tests_assets/node_crown/node_crown_test.json"s;
   auto outname     = "point_image.png"s;
   auto paramsname  = ""s;
   auto interactive = true;
@@ -251,19 +251,20 @@ void run(const vector<string>& args) {
 
   // CYLINDERS MODELS
 //  int shapeCounter = 3; // counts the correct index for cy_inst to point to the correct model
-  shape_data defaultCylinder = make_uvcylinder({32,32,32}, {0.5, 1});
+  vec2f cylinderScale = {0.04, 0.1};
+  shape_data defaultCylinder = make_uvcylinder({32,32,32}, cylinderScale);
   scene.shapes.push_back(defaultCylinder);
 
-  for (Branch b : treeArray){
+  for (const Branch& b : treeArray){
     vec3f rotationAngles = computeAngles({0,0,1}, b._direction);
     frame3f modFrame;
-    b._start.z += ModelScale/2;
     frame3f translation = translation_frame(b._start);
-    frame3f scaling = scaling_frame({ModelScale, ModelScale, ModelScale});
+    auto l = yocto::sqrt(dot(b._start, b._end));
+    frame3f scaling = scaling_frame({l,l,l});
     frame3f rotation = rotation_frame({1,0,0}, rotationAngles.x) *
                        rotation_frame({0,1,0}, rotationAngles.y) *
                        rotation_frame({0,0,1}, rotationAngles.z);
-    modFrame = translation * scaling * rotation;
+    modFrame = rotation * translation * scaling;
     instance_data cy_inst = {modFrame,3,3};
     scene.instances.push_back(cy_inst);
   }

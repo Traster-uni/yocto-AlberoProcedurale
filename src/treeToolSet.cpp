@@ -283,7 +283,7 @@ vec3f computeDirection(Branch& fatherBranch, int seed){
   }
   newDir /= fatherBranch.influencePoints.size();
   auto newDir_norm = sqrt(dot(newDir, newDir));
-  return (newDir / newDir_norm) + vec3f{0.1,0.1,0.1};
+  return (newDir / newDir_norm); // + vec3f{0.1,0.1,0.1};
 }
 
 
