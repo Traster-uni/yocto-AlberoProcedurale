@@ -1,6 +1,6 @@
 {
   "asset": {
-    "copyright": "Model by Fabio Pellacini from github.com/~xelatihy/yocto-gl",
+    "copyright": "Model by Fabio Pellacini from github.com/~xelatihy/yocto-gl, 0.045",
     "version": "4.2"
   },
   "cameras": [
@@ -44,6 +44,10 @@
     {
       "name": "bbox",
       "uri": "textures/bbox.png"
+    },
+    {
+      "name": "cylinder",
+      "uri": "textures/cylinder.png"
     }
   ],
   "materials": [
@@ -68,7 +72,7 @@
     {
       "name": "cylinder",
       "color": [1, 1, 1],
-      "color_tex": 2,
+      "color_tex": 5,
       "type": "matte"
     }
   ],

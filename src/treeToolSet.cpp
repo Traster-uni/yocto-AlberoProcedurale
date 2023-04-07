@@ -101,37 +101,64 @@ int randomSeed(bool random, int interval_start, int interval_end, mt19937& gener
 vec3f computeAngles(vec3f origin, vec3f direction) {
   vec3f rotation;
   if (origin != vec3f{0,0,0}){
-    // plane y-z --> x rotation
+    // plane y-z --> x rotation --> PITCH
     if ((origin.y != 0 || origin.z != 0) && (direction.y != 0 || direction.z != 0)) {
-      auto num_yz = dot(vec2f{origin.y, origin.z}, vec2f{direction.y, direction.z});
+      cout << " ^ YZ PLANE --> X ROTATION --> PITCH" << endl;
+      auto num_yz =  -dot(vec2f{origin.y, origin.z}, vec2f{direction.y, direction.z});
+      cout << "   num_yz= " << num_yz << endl;
       auto modOrigin_yz = sqrt(sqr(origin.y) + sqr(origin.z));
+      cout << "   modOrigin_yz= " << modOrigin_yz << endl;
       auto modDir_yz    = sqrt(sqr(direction.y) + sqr(direction.z));
+      cout << "   modDir_YZ= " << modDir_yz << endl;
       auto denum_yz     = modOrigin_yz * modDir_yz;
+      cout << "   denum_yz= " << denum_yz << endl;
       rotation.x        = ::acos(num_yz / denum_yz);
+      cout << "   rotation.x= " << rotation.x << endl;
     } else { rotation.x = 0; }
 
-    // plane z-x --> y rotation
+    // plane z-x --> y rotation --> YAW
     if ((origin.x != 0 || origin.z != 0) && (direction.x != 0 || direction.z != 0)){
-      auto num_zx = dot(
-          vec2f{origin.z, origin.x}, vec2f{direction.z, direction.x});
+      cout << " <-> ZX PLANE --> Y ROTATION --> YAW" << endl;
+      auto num_zx = -dot(vec2f{origin.z, origin.x}, vec2f{direction.z, direction.x});
+      cout << "     num_zx= " << num_zx << endl;
       auto modOrigin_zx = sqrt(sqr(origin.z) + sqr(origin.x));
+      cout << "     modOrigin_zx= " << modOrigin_zx << endl;
       auto modDir_zx    = sqrt(sqr(direction.z) + sqr(direction.x));
+      cout << "     modDir_zx= " << modDir_zx << endl;
       auto denum_zx     = modOrigin_zx * modDir_zx;
+      cout << "     denum_zx= " << denum_zx << endl;
       rotation.y        = ::acos(num_zx / denum_zx);
+      cout << "     rotation.y= " << rotation.y << endl;
     } else { rotation.y = 0; }
 
-    // plane x-y --> z rotation
+    // plane x-y --> z rotation --> ROLL
     if ((origin.x != 0 || origin.y != 0) && (direction.x != 0 || direction.y != 0)){
-      auto num_xy = dot(
-          vec2f{origin.x, origin.y}, vec2f{direction.x, direction.y});
+      cout << " (.) XY PLANE --> Z ROTATION --> ROLL" << endl;
+      auto num_xy = dot(vec2f{origin.x, origin.y}, vec2f{direction.x, direction.y});
+      cout << "     num_xy= " << num_xy << endl;
       auto modOrigin_xy = sqrt(sqr(origin.x) + sqr(origin.y));
+      cout << "     modOrigin_xy= " << modOrigin_xy << endl;
       auto modDir_xy    = sqrt(sqr(direction.x) + sqr(direction.y));
+      cout << "     modDir_xy= " << modDir_xy << endl;
       auto denum_xy     = modOrigin_xy * modDir_xy;
+      cout << "     denum_xy= " << denum_xy << endl;
       rotation.z        = ::acos(num_xy / denum_xy);
+      cout << "     rotation.z= " << rotation.z << endl;
     } else { rotation.z = 0; }
     return rotation;
   }
   return direction;
+}
+
+template <typename T>
+T maxInVector (vector<T> a){
+  auto max = a[0];
+  for (auto elem : a){
+    if (elem > max){
+      max = elem;
+    }
+  }
+  return max;
 }
 
 vector<attrPoint3f> populateSphere(int num_points, int seed, mt19937& generator) {
@@ -317,17 +344,16 @@ void clearInfluenceSet(Branch& branch){
 
 
 void deleteAttractionPoints(Branch& current, attractionPoints& treeCrown){
-//  cout << " $ > DELETING ATTR POINTS" << endl;
   auto killDistance = treeCrown.killDistance;
+
   for (auto influ : current.influencePoints){
     double d = distance(current._end, influ.coords);
-//    cout << " $ > distance between the attrPoint: "<< influ.ID << " and branch: "  << current._id << " is " << d <<  endl;
-//    cout << " $ > attrPoint coords: (" << influ.coords.x << ", " << influ.coords.y << ", " << influ.coords.z << ")" << endl;
+
     if (d <= killDistance){
       for (int ap : range(treeCrown.attractionPointsArray.size())){
+
         if (influ.ID == treeCrown.attractionPointsArray[ap].ID){
           treeCrown.attractionPointsArray.erase(treeCrown.attractionPointsArray.begin() + ap);
-//          cout << " $ > deleted attrpoint: " << influ.ID << endl;
         }
       }
     }
@@ -358,8 +384,8 @@ auto partition_attrPoint3f(vector<attrPoint3f>& arrVec3f, int start, int end) {
   // Sorting left and right parts of the pivot element
   int i = start, j = end;
   while (i < pivotIndex && j > pivotIndex) {
-        while (arrVec3f[i].coords.y <= pivot) { i++;}
-        while (arrVec3f[j].coords.y > pivot) { j--; }
+        while (arrVec3f[i].coords.y <= pivot) { i++; }
+        while (arrVec3f[j].coords.y > pivot)  { j--; }
 
         if (i < pivotIndex && j > pivotIndex) {
             swap(arrVec3f, i++, j--);
