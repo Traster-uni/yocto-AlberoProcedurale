@@ -11,7 +11,6 @@
 #include <yocto/yocto_modelio.h>
 
 #include <stdlib.h>
-#include <iostream>
 #include <unordered_set>
 
 #include "treeToolSet_REFACTOR.cpp"
@@ -149,7 +148,7 @@ void run(const vector<string>& args) {
     return ;
   }
   // sort attraction points vertically
-  quicksort(crown.attractionPointsArray, 0, crown.ARRAY_SIZE);
+  bubbleSort(crown.attractionPointsArray, crown.ARRAY_SIZE);
   // l'attraction Point piu' basso.
   auto minVec3f = crown.attractionPointsArray[0];
 

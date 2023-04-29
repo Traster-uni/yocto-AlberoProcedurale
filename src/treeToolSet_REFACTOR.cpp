@@ -283,54 +283,20 @@ void deleteAttractionPoints(Branch& current, attractionPoints& treeCrown){
   }
   current.influencePoints.erase(current.influencePoints.begin(), current.influencePoints.end());
 }
-
-
-// Sorting algorithm
-// Quicksort code from:
-// https://www.geeksforgeeks.org/cpp-program-for-quicksort/ adapted to sort attrPoint3f
-void swap(vec3f *array, int index1, int index2) {
-  auto a = array[index1];
-  array[index1] = array[index2];
-  array[index2] = a;
-}
-
-
-auto partition(vec3f *arrVec3f, int& start, int& end) {
-  float pivot = arrVec3f[start].y;
-  int   count = 0;
-  for (int i = start + 1; i <= end; i++) {
-        if (arrVec3f[i].y <= pivot) count++;
-  }
-  // Giving pivot element its correct position
-  int pivotIndex = start + count;
-  swap(arrVec3f, pivotIndex, start);
-  // Sorting left and right parts of the pivot element
-  int i = start, j = end;
-  while (i < pivotIndex && j > pivotIndex) {
-        while (arrVec3f[i].y <= pivot) { i++; }
-        while (arrVec3f[j].y > pivot)  { j--; }
-
-        if (i < pivotIndex && j > pivotIndex) {
-            swap(arrVec3f, i, j);
-            vec3f temp = arrVec3f[i];
-            arrVec3f[i] = arrVec3f[j];
-            arrVec3f[j] = temp;
-            i++;
-            j--;
-        }
-  }
-  return pivotIndex;
-}
-
-
-auto quicksort(vec3f *vec, int start, int end) {
-  if (start >= end) return;
-  // partitioning the array
-  auto p = partition(vec, start, end);
-  quicksort(vec, start, p - 1);  // Sorting the left part
-  quicksort(vec, p + 1, end);    // Sorting the right part
-}
 //
+void bubbleSort(vec3f x[], int size) {
+  //from https://cplusplus.com/forum/beginner/12731/
+  bool exchanges;
+  do {
+    exchanges = false;  // assume no exchanges
+    for (int i=0; i<size-1; i++) {
+      if (x[i].y > x[i+1].y) {
+        auto temp = x[i]; x[i] = x[i+1]; x[i+1] = temp;
+        exchanges = true;  // after exchange, must look again
+      }
+    }
+  } while (exchanges);
+}
 
 }  // namespace yocto
 
