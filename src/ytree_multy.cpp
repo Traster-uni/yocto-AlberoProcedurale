@@ -8,12 +8,13 @@
 #include <yocto/yocto_sceneio.h>
 #include <yocto/yocto_shape.h>
 #include <yocto/yocto_trace.h>
+#include <yocto/yocto_modelio.h>
 
+#include <stdlib.h>
 #include <iostream>
 #include <unordered_set>
 
-#include "treeToolSet.cpp"
-#include "yocto/yocto_modelio.h"
+#include "treeToolSet_REFACTOR.cpp"
 
 using namespace yocto;
 using namespace std::string_literals;
@@ -36,11 +37,11 @@ void run(const vector<string>& args) {
   //custom
   auto rnd_input = false;
 //  auto num_attrPoint = ""s;
-  auto num_attrPoint = "500"s;
+  auto num_attrPoint = "1000"s;
 //  auto attr_range = ""s;
-  auto attr_range = "0.35"s;
+  auto attr_range = "0.25"s;
 //  auto kill_range = ""s;
-  auto kill_range = "0.25"s;
+  auto kill_range = "0.2"s;
   auto treeType = ""s;
 
   auto params      = trace_params{};
@@ -55,10 +56,8 @@ void run(const vector<string>& args) {
   add_option(cli, "envname", envname, "add environment");
   add_option(cli, "savebatch", savebatch, "save batch");
   add_option(cli, "resolution", params.resolution, "image resolution");
-  add_option(
-      cli, "sampler", params.sampler, "sampler type", trace_sampler_labels);
-  add_option(cli, "falsecolor", params.falsecolor, "false color type",
-      trace_falsecolor_labels);
+  add_option(cli, "sampler", params.sampler, "sampler type", trace_sampler_labels);
+  add_option(cli, "falsecolor", params.falsecolor, "false color type", trace_falsecolor_labels);
   add_option(cli, "samples", params.samples, "number of samples");
   add_option(cli, "bounces", params.bounces, "number of bounces");
   add_option(cli, "batch", params.batch, "sample batch");
@@ -131,6 +130,8 @@ void run(const vector<string>& args) {
 
   // INSTANCES
   attractionPoints crown;
+  crown.attractionPointsArray = static_cast<vec3f*>(std::calloc(stoi(num_attrPoint), sizeof(vec3f)));
+  crown.ARRAY_SIZE = stoi(num_attrPoint);
   vector<Branch> treeArray; // a collection of all branches in the tree
   // random generator
   random_device rdmGenerator;
@@ -143,10 +144,12 @@ void run(const vector<string>& args) {
   auto seedrnd = randomSeed(rnd_input, 0, 100000, rdm);
   print_info("uniform seeding: {}, no random seed -> 58380", seedrnd);
   // generation
-  crown.attractionPointsArray = populateSphere(stoi(num_attrPoint), seedrnd, rdm);
-
+  if (!populateSphere(crown.attractionPointsArray, crown.ARRAY_SIZE, stoi(num_attrPoint), seedrnd, rdm)){
+    print_info("Too many attraction points. Choose less or equal to 5000");
+    return ;
+  }
   // sort attraction points vertically
-  quicksort_attrPoint3f(crown.attractionPointsArray, 0, crown.attractionPointsArray.size());
+  quicksort(crown.attractionPointsArray, 0, crown.ARRAY_SIZE);
   // l'attraction Point piu' basso.
   auto minVec3f = crown.attractionPointsArray[0];
 
@@ -171,27 +174,26 @@ void run(const vector<string>& args) {
   auto trunkBranch = Branch{
       floorPos,
       floorPos += trunkGrowthDir,
-      trunkGrowthDir *= 0.2,
+      trunkGrowthDir,
       0.2,
       0,
       nullptr,
       vector<Branch>(),
-      vector<attrPoint3f>(),
+      vector<vec3f*>(),
+      2,
       1,
-      1,
-      60,
+      70,
       0.1,
       false,
       true,
       false};
-  treeArray.push_back(trunkBranch);
 
   Branch growingBranch = growChild(trunkBranch, rndDirection(trunkBranch, seedrnd), rdm);
   growingBranch.trunk = true;
   treeArray.push_back(growingBranch);
 //  int shapeIndex = scene.shapes.size();
 
-  while (checkHeight(growingBranch, minVec3f.coords)){
+  while (checkHeight(growingBranch, minVec3f)){
     growingBranch = growChild(trunkBranch, trunkGrowthDir, rdm);
     growingBranch.fertile = false;
     growingBranch.trunk = true;
@@ -257,34 +259,27 @@ void run(const vector<string>& args) {
    * detiene il puntatore al cilindro e dunque non ne fa una copia.
    */
 
-  int shapeCounter = 3;
-  for (const Branch& b : treeArray){
-    // generate cylinder
-    float l = b._length * 1.8;
-    vec2f cylinderScale = {0.05, l};
-    shape_data defaultCylinder = make_uvcylinder({32,32,32}, cylinderScale);
-    scene.shapes.push_back(defaultCylinder);
-    // CYLINDER ORIENTATION AT SPAWN= {-1,0,-1}
-    vec3f rotationAngles = computeAngles({-1,0,-1}, b._direction);
-    frame3f modFrame;
-    vec3f middlePoint = {(b._start.x+b._end.x)/2, (b._start.y+b._end.y)/2, (b._start.z+b._end.z)/2};
-    frame3f translation = translation_frame(middlePoint);
-//    auto l = yocto::sqrt(dot(b._start, b._end));
-    frame3f scaling = scaling_frame({0.25, 0.25, 0.25});
-    frame3f rotation = rotation_frame({1,0,0}, rotationAngles.x) *
-                       rotation_frame({0,1,0}, rotationAngles.y) *
-                       rotation_frame({0,0,1}, rotationAngles.z);
-    modFrame = translation * rotation * scaling;
-    instance_data cy_inst = {modFrame,shapeCounter++,3};
-    scene.instances.push_back(cy_inst);
+
+  vector<vec3f> branchEndPoints;
+  for ( auto b : treeArray){
+    branchEndPoints.push_back(b._start);
+    branchEndPoints.push_back(b._end);
   }
+  shape_data cylinders = lines_to_cylinders(branchEndPoints);
+  scene.shapes.push_back(cylinders);
+  instance_data cylinderInstances = {{{1,0,0},
+                                                {0,1,0},
+                                                {0,0,1},
+                                            {0,0,0}}, 3, 1};
+  scene.instances.push_back(cylinderInstances);
 
   // SPHERES MODELS
-  for (auto ap : crown.attractionPointsArray){
+  for (int i = 0; i < crown.ARRAY_SIZE; i++){
     auto aP_instance = attractionPointInstance;
-    aP_instance.frame.o = ap.coords;
+    aP_instance.frame.o = crown.attractionPointsArray[i];
     scene.instances.push_back(aP_instance);
   }
+  free(crown.attractionPointsArray);
 
   //////////////////////////////////////////////////////////////////////////////
 

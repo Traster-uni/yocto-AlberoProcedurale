@@ -15,16 +15,10 @@ namespace yocto {
 
 // STRUCTS
 
-
-typedef struct attrPoint3f {
-  vec3f coords;
-  int ID;
-}attrPoint3f;
-
-
 typedef struct attractionPoints {
   // Conteiner per la corona di punti di attrazione
-  vector<attrPoint3f> attractionPointsArray;  // vettore di attraction points in uno spazio
+  int ARRAY_SIZE;
+  vec3f* attractionPointsArray;  // vettore di attraction points in uno spazio
   string treeCrownShape;  // directoy del modello blender per la forma della chioma
   float  radiusInfluence;  // raggio di influenza di ogni punto di attrazione
   float  killDistance;     // raggio di eliminazione dei punti di influenza
@@ -40,15 +34,15 @@ typedef struct Branch {
   Branch*   _id;
   Branch*   father_ptr{};  // puntatore al branch padre
   vector<Branch> children;
-  vector<attrPoint3f> influencePoints;
+  vector<vec3f*> influencePoints;
   int   maxBranches; // definisce il numero massimo di figli generabili
   int   minBranches; // definisce il numero minimo di figli da generare
   int   depth;
   float trunkDiameter; // Diametro del tronco sul punto.
   bool  fertile;      // definisce se il nodo è fertile o meno
-  bool  trunk;        // is trunk
-  bool  branch;       // is branch
-  bool  leaf;         // is leaf
+  bool  trunk;        // it's a trunk
+  bool  branch;       // it's a branch
+  bool  leaf;         // it's a leaf
 } Branch;
 
 template <typename T>
@@ -135,15 +129,15 @@ vec3f computeAngles(vec3f origin, vec3f direction) {
   return direction;
 }
 
-vector<attrPoint3f> populateSphere(int num_points, const int& seed, mt19937& generator) {
-  auto rng = make_rng(seed); // seed the generator
-  vector<attrPoint3f> rdmPoints_into_sphere;
-  int ID = 0;
-  for (auto i : range(num_points)){
-    rdmPoints_into_sphere.push_back(attrPoint3f{sample_sphere(generator), ID});
-    ID++;
+bool populateSphere(vec3f *array_struct, int const& ARRAY_SIZE, int num_points, const int& seed, mt19937& generator) {
+  if (num_points <= ARRAY_SIZE){
+    auto rng = make_rng(seed); // seed the generator
+    for (auto i : range(num_points)){
+      array_struct[i] = sample_sphere(generator);
+    }
+    return true;
   }
-  return rdmPoints_into_sphere;
+  return false;
 }
 
 
@@ -199,10 +193,9 @@ bool checkHeight(Branch current, vec3f minVec) { return current._end.y < minVec.
 
 bool isFertile(Branch& current){
   if (current.depth == 0){
-        return false;
-  }else if (current.children.size() < current.maxBranches &&
-             !current.influencePoints.empty()){
-        return true;
+    return false;
+  }else if (current.children.size() < current.maxBranches && !current.influencePoints.empty()){
+    return true;
   }
   return false;
 }
@@ -220,12 +213,14 @@ bool canBranch(mt19937& generator){
 // Structs modifications
 
 void findInfluenceSet(Branch& current, attractionPoints& treeCrown) {
-//  cout << " # > SEARCHING FOR INFLUENCE POINTS" << endl;
   double radiusInfluence = treeCrown.radiusInfluence;
-  for (auto ap :treeCrown.attractionPointsArray) {
-    double d = distance(current._end, ap.coords);
+  for (int i = 0; i < treeCrown.ARRAY_SIZE; i++) {
+//    cout << "findInfluenceSet: " << treeCrown.attractionPointsArray[i].x << ", " \
+//         << treeCrown.attractionPointsArray[i].y << ", " \
+//         << treeCrown.attractionPointsArray[i].z << endl;
+    double d = distance(current._end, treeCrown.attractionPointsArray[i]);
     if (d <= radiusInfluence) {
-      current.influencePoints.push_back(ap);
+      current.influencePoints.push_back(&treeCrown.attractionPointsArray[i]);
     }
   }
 }
@@ -236,9 +231,8 @@ vec3f computeDirection(Branch& fatherBranch, const int& seed){
   vec3f newDir = {0, 0, 0};
   vec3f num;
   float denom;
-  for (auto& ip : fatherBranch.influencePoints) {
-    auto ip_local = ip;
-    num = ip_local.coords - fatherBranch._end;
+  for (auto ip : fatherBranch.influencePoints) {
+    num = *ip - fatherBranch._end;
     denom  = length(num);
     newDir += vec3f{num.x / denom, num.y / denom, num.z / denom};
   }
@@ -281,36 +275,31 @@ void deleteAttractionPoints(Branch& current, attractionPoints& treeCrown){
   auto killDistance = treeCrown.killDistance;
 
   for (auto influ : current.influencePoints){
-    double d = distance(current._end, influ.coords);
+    double d = distance(current._end, *influ);
 
     if (d <= killDistance){
-      for (int ap : range(treeCrown.attractionPointsArray.size())){
-
-        if (influ.ID == treeCrown.attractionPointsArray[ap].ID){
-          treeCrown.attractionPointsArray.erase(treeCrown.attractionPointsArray.begin() + ap);
-        }
-      }
+      free(influ);
     }
   }
+  current.influencePoints.erase(current.influencePoints.begin(), current.influencePoints.end());
 }
 
 
 // Sorting algorithm
 // Quicksort code from:
 // https://www.geeksforgeeks.org/cpp-program-for-quicksort/ adapted to sort attrPoint3f
-template <typename T>
-void swap(vector<T>& array, int index1, int index2) {
-  auto a        = array[index1];
+void swap(vec3f *array, int index1, int index2) {
+  auto a = array[index1];
   array[index1] = array[index2];
   array[index2] = a;
 }
 
 
-auto partition_attrPoint3f(vector<attrPoint3f>& arrVec3f, int& start, int& end) {
-  float pivot = arrVec3f[start].coords.y;
+auto partition(vec3f *arrVec3f, int& start, int& end) {
+  float pivot = arrVec3f[start].y;
   int   count = 0;
   for (int i = start + 1; i <= end; i++) {
-        if (arrVec3f[i].coords.y <= pivot) count++;
+        if (arrVec3f[i].y <= pivot) count++;
   }
   // Giving pivot element its correct position
   int pivotIndex = start + count;
@@ -318,23 +307,28 @@ auto partition_attrPoint3f(vector<attrPoint3f>& arrVec3f, int& start, int& end) 
   // Sorting left and right parts of the pivot element
   int i = start, j = end;
   while (i < pivotIndex && j > pivotIndex) {
-        while (arrVec3f[i].coords.y <= pivot) { i++; }
-        while (arrVec3f[j].coords.y > pivot)  { j--; }
+        while (arrVec3f[i].y <= pivot) { i++; }
+        while (arrVec3f[j].y > pivot)  { j--; }
 
         if (i < pivotIndex && j > pivotIndex) {
-            swap(arrVec3f, i++, j--);
+            swap(arrVec3f, i, j);
+            vec3f temp = arrVec3f[i];
+            arrVec3f[i] = arrVec3f[j];
+            arrVec3f[j] = temp;
+            i++;
+            j--;
         }
   }
   return pivotIndex;
 }
 
 
-auto quicksort_attrPoint3f(vector<attrPoint3f>& vec, int start, int end) {
+auto quicksort(vec3f *vec, int start, int end) {
   if (start >= end) return;
   // partitioning the array
-  auto p = partition_attrPoint3f(vec, start, end);
-  quicksort_attrPoint3f(vec, start, p - 1);  // Sorting the left part
-  quicksort_attrPoint3f(vec, p + 1, end);    // Sorting the right part
+  auto p = partition(vec, start, end);
+  quicksort(vec, start, p - 1);  // Sorting the left part
+  quicksort(vec, p + 1, end);    // Sorting the right part
 }
 //
 

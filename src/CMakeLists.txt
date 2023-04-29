@@ -8,6 +8,7 @@ endfunction()
 add_yapp(treeToolSet)
 add_yapp(ytree_multy)
 add_yapp(cylinderTest)
+add_yapp(treeToolSet_REFACTOR)
 
 
 

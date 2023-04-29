@@ -6,7 +6,7 @@
   "cameras": [
     {
       "name": "default",
-      "lens": 0.28,
+      "lens": 0.15,
       "aperture": 0.0,
       "aspect": 1.5,
       "frame": [
@@ -34,7 +34,7 @@
       "uri": "textures/floor.png"
     },
     {
-      "name": "cylinder",
+      "name": "bark",
       "uri": "textures/cylinder.png"
     },
     {

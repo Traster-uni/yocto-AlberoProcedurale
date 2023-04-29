@@ -92,14 +92,15 @@ void run(const vector<string>& args) {
   //
   vec3f bs1 = {0,-1.2,0};
   vec3f be1 = {0,-1 ,0};
-  vec3f v1 = (be1 - bs1) / yocto::sqrt(dot((be1 - bs1),(be1 - bs1)));
+  vec3f v1 = be1 - bs1;
   float d1 = distance(bs1, be1) * 1.8;
 
   vec3f bs2 = be1;
-  vec3f be2 = {0.2, -0.9, 0.1};
-  vec3f v2 = (be2 - bs2) / yocto::sqrt(dot((be2 - bs2), (be2 - bs2)));
+  vec3f be2 = {0.2, -0.8, 0.7};
+  vec3f v2 = be2 - bs2;
   float d2 = distance(bs2, be2) * 1.8;
   vector<float> distances = {d1, d2};
+  vector<vec3f> pv = {bs1, be1,bs2, be2};
 
   auto  attrInst1 = instance_data{frame3f{{0.25,0,0},
                                                    {0,0.25,0},
@@ -123,35 +124,37 @@ void run(const vector<string>& args) {
   scene.instances.push_back(attrInst4);
 
   auto angle1 = computeAngles({-1,0,-1}, v1);
-  auto angle2 = computeAngles({-1,0,-1}, v2);
+  auto angle2 = computeAngles({-1,02,-1}, v2);
 
 //  auto maxLength = maxInVector(distances);
 
   vec2f cy_scale1 = {0.1, d1};
   vec2f cy_scale2 = {0.1, d2};
-  shape_data cy1 = make_uvcylinder({32,32,32}, cy_scale1);
-  shape_data cy2 = make_uvcylinder({32,32,32}, cy_scale2);
+//  shape_data cy1 = make_uvcylinder({32,32,32}, cy_scale1);
+//  shape_data cy2 = make_uvcylinder({32,32,32}, cy_scale2);
+  shape_data cy1 =  lines_to_cylinders(pv, 32, 0.02f);
   scene.shapes.push_back(cy1);
-  scene.shapes.push_back(cy2);
+//  scene.shapes.push_back(cy2);
 
 
   frame3f modForm1;
-  vec3f middlePoint1 = {(bs1.x+be1.x)/2, (bs1.y+be1.y)/2, (bs1.z+be1.z)/2};
-  auto translation1 = translation_frame(middlePoint1);
-  auto scaling1 = scaling_frame({0.25, 0.25, 0.25});
-  auto rotation1 = rotation_frame({1,0,0}, angle1.x) *
-                   rotation_frame({0,1,0}, angle1.y) *
-                   rotation_frame({0,0,1}, angle1.z);
-  modForm1 = translation1 * rotation1 * scaling1;
+//  vec3f middlePoint1 = {(bs1.x+be1.x)/2, (bs1.y+be1.y)/2, (bs1.z+be1.z)/2};
+//  auto translation1 = translation_frame(middlePoint1);
+//  auto translation1 = translation_frame(bs1);
+//  auto scaling1 = scaling_frame({0.25, 0.25, 0.25});
+//  auto rotation1 = rotation_frame({1,0,0}, angle1.x) *
+//                   rotation_frame({0,1,0}, angle1.y) *
+//                   rotation_frame({0,0,1}, angle1.z);
+//  modForm1 = translation1;
 
-  frame3f modForm2;
-  vec3f middlePoint2 = {(bs2.x+be2.x)/2, (bs2.y+be2.y)/2, (bs2.z+be2.z)/2};
-  auto translation2 = translation_frame(middlePoint2);
-  auto scaling2 = scaling_frame({0.25, 0.25, 0.25});
-  auto rotation2 = rotation_frame({1,0,0}, angle2.x) *
-                   rotation_frame({0,1,0}, angle2.y) *
-                   rotation_frame({0,0,1}, angle2.z);
-  modForm2 = translation2 * rotation2 * scaling2;
+//  frame3f modForm2;
+//  vec3f middlePoint2 = {(bs2.x+be2.x)/2, (bs2.y+be2.y)/2, (bs2.z+be2.z)/2};
+//  auto translation2 = translation_frame(middlePoint2);
+//  auto scaling2 = scaling_frame({0.25, 0.25, 0.25});
+//  auto rotation2 = rotation_frame({1,0,0}, angle2.x) *
+//                   rotation_frame({0,1,0}, angle2.y) *
+//                   rotation_frame({0,0,1}, angle2.z);
+//  modForm2 = translation2 * rotation2 * scaling2;
 
   cout << "v1= " << v1.x << ", " << v1.y << ", " << v1.z << endl;
   cout << degrees(angle1.x) << ", " << degrees(angle1.y) << ", " << degrees(angle1.z) << endl;
@@ -159,11 +162,11 @@ void run(const vector<string>& args) {
   cout << degrees(angle2.x) << ", " << degrees(angle2.y) << ", " << degrees(angle2.z) << endl;
 
 
-  instance_data cy_inst1 = {modForm1, 2,1};
-  instance_data cy_inst2 = {modForm2, 3, 1};
+  instance_data cy_inst1 = {{{1,0,0}, {0,1,0}, {0,0,1}, {0,0,0}}, 2,1};
+//  instance_data cy_inst2 = {modForm2, 3, 1};
 
   scene.instances.push_back(cy_inst1);
-  scene.instances.push_back(cy_inst2);
+//  scene.instances.push_back(cy_inst2);
 
 
   //////////////////////////////////////////////////////////////////////////////
