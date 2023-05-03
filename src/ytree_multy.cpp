@@ -22,8 +22,9 @@ using namespace std::string_literals;
 void run(const vector<string>& args) {
   // parameters
 //  auto scenename   = "scene.json"s;
-  auto scenename = R"(C:\yocto-AlberoProcedurale\tests\tests_assets\node_crown\node_crown_test.json)"s;
+  // auto scenename = R"(C:\yocto-AlberoProcedurale\tests\tests_assets\node_crown\node_crown_test.json)"s;
 //  auto scenename = "/home/tommasomarialopedote/Computer-graphics-project/yocto-AlberoProcedurale/tests/tests_assets/node_crown/node_crown_test.json"s;
+  auto scenename = "/home/michi/Desktop/UNI/CG/yocto-AlberoProcedurale/tests/tests_assets/node_crown/node_crown_test.json"s;
   auto outname     = "point_image.png"s;
   auto paramsname  = ""s;
   auto interactive = true;
@@ -129,9 +130,9 @@ void run(const vector<string>& args) {
 
   // INSTANCES
   attractionPoints crown;
-  crown.attractionPointsArray = static_cast<vec3f*>(std::calloc(stoi(num_attrPoint), sizeof(vec3f)));
   crown.ARRAY_SIZE = stoi(num_attrPoint);
   vector<Branch> treeArray; // a collection of all branches in the tree
+  crown.attractionPointsPtr = new vec3f[crown.ARRAY_SIZE];
   // random generator
   random_device rdmGenerator;
   mt19937 rdm(rdmGenerator());
@@ -143,14 +144,14 @@ void run(const vector<string>& args) {
   auto seedrnd = randomSeed(rnd_input, 0, 100000, rdm);
   print_info("uniform seeding: {}, no random seed -> 58380", seedrnd);
   // generation
-  if (!populateSphere(crown.attractionPointsArray, crown.ARRAY_SIZE, stoi(num_attrPoint), seedrnd, rdm)){
+  if (!populateSphere(crown.attractionPointsPtr, crown.ARRAY_SIZE, stoi(num_attrPoint), seedrnd, rdm)){
     print_info("Too many attraction points. Choose less or equal to 5000");
     return ;
   }
   // sort attraction points vertically
-  bubbleSort(crown.attractionPointsArray, crown.ARRAY_SIZE);
+  bubbleSort(crown.attractionPointsPtr, crown.ARRAY_SIZE);
   // l'attraction Point piu' basso.
-  auto minVec3f = crown.attractionPointsArray[0];
+  auto minVec3f = crown.attractionPointsPtr[0];
 
   // modeling for attrPoints
   float ModelScale = 0.4;
@@ -275,10 +276,10 @@ void run(const vector<string>& args) {
   // SPHERES MODELS
   for (int i = 0; i < crown.ARRAY_SIZE; i++){
     auto aP_instance = attractionPointInstance;
-    aP_instance.frame.o = crown.attractionPointsArray[i];
+    aP_instance.frame.o = crown.attractionPointsPtr[i];
     scene.instances.push_back(aP_instance);
   }
-  free(crown.attractionPointsArray);
+  delete crown.attractionPointsPtr;
 
   //////////////////////////////////////////////////////////////////////////////
 

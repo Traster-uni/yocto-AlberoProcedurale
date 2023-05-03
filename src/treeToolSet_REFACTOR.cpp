@@ -18,7 +18,7 @@ namespace yocto {
 typedef struct attractionPoints {
   // Conteiner per la corona di punti di attrazione
   int ARRAY_SIZE;
-  vec3f* attractionPointsArray;  // vettore di attraction points in uno spazio
+  vec3f* attractionPointsPtr;  // vettore di attraction points in uno spazio
   string treeCrownShape;  // directoy del modello blender per la forma della chioma
   float  radiusInfluence;  // raggio di influenza di ogni punto di attrazione
   float  killDistance;     // raggio di eliminazione dei punti di influenza
@@ -215,12 +215,13 @@ bool canBranch(mt19937& generator){
 void findInfluenceSet(Branch& current, attractionPoints& treeCrown) {
   double radiusInfluence = treeCrown.radiusInfluence;
   for (int i = 0; i < treeCrown.ARRAY_SIZE; i++) {
-//    cout << "findInfluenceSet: " << treeCrown.attractionPointsArray[i].x << ", " \
-//         << treeCrown.attractionPointsArray[i].y << ", " \
-//         << treeCrown.attractionPointsArray[i].z << endl;
-    double d = distance(current._end, treeCrown.attractionPointsArray[i]);
+  // cout << "findInfluenceSet: " << &treeCrown.attractionPointsPtr[i] << endl;
+    double d = distance(current._end, treeCrown.attractionPointsPtr[i]);
     if (d <= radiusInfluence) {
-      current.influencePoints.push_back(&treeCrown.attractionPointsArray[i]);
+      vec3f* temp = new vec3f;
+      temp = &treeCrown.attractionPointsPtr[i];
+      current.influencePoints.push_back(temp);
+      cout << "findInfluenceSet temp: " << temp << endl;
     }
   }
 }
@@ -278,7 +279,8 @@ void deleteAttractionPoints(Branch& current, attractionPoints& treeCrown){
     double d = distance(current._end, *influ);
 
     if (d <= killDistance){
-      free(influ);
+      cout << "deleteAttractionPoints nr: " << influ << endl;
+      delete influ;
     }
   }
   current.influencePoints.erase(current.influencePoints.begin(), current.influencePoints.end());
