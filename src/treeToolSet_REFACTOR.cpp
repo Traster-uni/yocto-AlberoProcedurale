@@ -57,7 +57,7 @@ T maxInVector (vector<T> a){
 }
 
 // UTIL FUNCTIONS
-auto sample_sphere(mt19937& generator){
+vec3f sample_sphere(mt19937& generator){
   uniform_real_distribution<float> floatDistribution(-1, 1);
 
   vec3f rvc3f = {floatDistribution(generator), floatDistribution(generator), floatDistribution(generator)};
@@ -129,11 +129,10 @@ vec3f computeAngles(vec3f origin, vec3f direction) {
   return direction;
 }
 
-bool populateSphere(vec3f *array_struct, int const& ARRAY_SIZE, int num_points, const int& seed, mt19937& generator) {
+bool populateSphere(vec3f *array, int const& ARRAY_SIZE, int num_points, mt19937& generator) {
   if (num_points <= ARRAY_SIZE){
-    auto rng = make_rng(seed); // seed the generator
-    for (auto i : range(num_points)){
-      array_struct[i] = sample_sphere(generator);
+    for (int i = 0; i < ARRAY_SIZE; i++){
+      array[i] = *new vec3f(sample_sphere(generator));
     }
     return true;
   }
@@ -218,10 +217,8 @@ void findInfluenceSet(Branch& current, attractionPoints& treeCrown) {
   // cout << "findInfluenceSet: " << &treeCrown.attractionPointsPtr[i] << endl;
     double d = distance(current._end, treeCrown.attractionPointsPtr[i]);
     if (d <= radiusInfluence) {
-      vec3f* temp = new vec3f;
-      temp = &treeCrown.attractionPointsPtr[i];
-      current.influencePoints.push_back(temp);
-      cout << "findInfluenceSet temp: " << temp << endl;
+      current.influencePoints.push_back(&treeCrown.attractionPointsPtr[i]);
+
     }
   }
 }

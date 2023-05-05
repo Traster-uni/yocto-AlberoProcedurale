@@ -22,9 +22,9 @@ using namespace std::string_literals;
 void run(const vector<string>& args) {
   // parameters
 //  auto scenename   = "scene.json"s;
-  // auto scenename = R"(C:\yocto-AlberoProcedurale\tests\tests_assets\node_crown\node_crown_test.json)"s;
+   auto scenename = R"(C:\yocto-AlberoProcedurale\tests\tests_assets\node_crown\node_crown_test.json)"s;
 //  auto scenename = "/home/tommasomarialopedote/Computer-graphics-project/yocto-AlberoProcedurale/tests/tests_assets/node_crown/node_crown_test.json"s;
-  auto scenename = "/home/michi/Desktop/UNI/CG/yocto-AlberoProcedurale/tests/tests_assets/node_crown/node_crown_test.json"s;
+//  auto scenename = "/home/michi/Desktop/UNI/CG/yocto-AlberoProcedurale/tests/tests_assets/node_crown/node_crown_test.json"s;
   auto outname     = "point_image.png"s;
   auto paramsname  = ""s;
   auto interactive = true;
@@ -144,7 +144,7 @@ void run(const vector<string>& args) {
   auto seedrnd = randomSeed(rnd_input, 0, 100000, rdm);
   print_info("uniform seeding: {}, no random seed -> 58380", seedrnd);
   // generation
-  if (!populateSphere(crown.attractionPointsPtr, crown.ARRAY_SIZE, stoi(num_attrPoint), seedrnd, rdm)){
+  if (!populateSphere(crown.attractionPointsPtr, crown.ARRAY_SIZE, stoi(num_attrPoint), rdm)){
     print_info("Too many attraction points. Choose less or equal to 5000");
     return ;
   }
