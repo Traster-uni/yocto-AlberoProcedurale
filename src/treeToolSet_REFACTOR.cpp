@@ -129,10 +129,11 @@ vec3f computeAngles(vec3f origin, vec3f direction) {
   return direction;
 }
 
-bool populateSphere(vec3f *array, int const& ARRAY_SIZE, int num_points, mt19937& generator) {
+bool populateSphere(vec3f array[], int const& ARRAY_SIZE, int num_points, mt19937& generator) {
   if (num_points <= ARRAY_SIZE){
     for (int i = 0; i < ARRAY_SIZE; i++){
-      array[i] = *new vec3f(sample_sphere(generator));
+      array[i] = sample_sphere(generator);
+      cout << array[i].x << ", " << array[i].y << ", " << array[i].z << ", " << endl;
     }
     return true;
   }
@@ -218,7 +219,6 @@ void findInfluenceSet(Branch& current, attractionPoints& treeCrown) {
     double d = distance(current._end, treeCrown.attractionPointsPtr[i]);
     if (d <= radiusInfluence) {
       current.influencePoints.push_back(&treeCrown.attractionPointsPtr[i]);
-
     }
   }
 }
@@ -272,12 +272,18 @@ void clearInfluenceSet(Branch& branch){
 void deleteAttractionPoints(Branch& current, attractionPoints& treeCrown){
   auto killDistance = treeCrown.killDistance;
 
-  for (auto influ : current.influencePoints){
-    double d = distance(current._end, *influ);
-
+//  for (auto influ : current.influencePoints){
+//    double d = distance(current._end, *influ);
+//
+//    if (d <= killDistance){
+//      cout << "deleteAttractionPoints nr: " << influ << endl;
+//      delete influ;
+//    }
+//  }
+  for ( int i = current.influencePoints.size(); i >= 0; i-- ){
+    double d = distance(current._end, *current.influencePoints[i]);
     if (d <= killDistance){
-      cout << "deleteAttractionPoints nr: " << influ << endl;
-      delete influ;
+      delete current.influencePoints[i];
     }
   }
   current.influencePoints.erase(current.influencePoints.begin(), current.influencePoints.end());

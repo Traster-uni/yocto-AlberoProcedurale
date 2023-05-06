@@ -105,6 +105,13 @@ void run(const vector<string>& args) {
   //    print_info("instaces_name: {}", scene.instance_names[i]);
   //    i++;
   //  }
+  //  void *operator new(size_t size){
+  //    void *ptr = malloc(size);
+  //    return ptr;
+  //  }
+  //  void operator delete(void *ptr){
+  //    free(ptr);
+  //  }
   //////////////////////////////////////////////////////////////////////////////
   /* individua la mash del punto e salvala in una var
    * individua le coordinate relative a tale punto e salvale in una var
@@ -133,6 +140,7 @@ void run(const vector<string>& args) {
   crown.ARRAY_SIZE = stoi(num_attrPoint);
   vector<Branch> treeArray; // a collection of all branches in the tree
   crown.attractionPointsPtr = new vec3f[crown.ARRAY_SIZE];
+  cout << "crown.attractionarrayPTR= " << crown.attractionPointsPtr << endl;
   // random generator
   random_device rdmGenerator;
   mt19937 rdm(rdmGenerator());
