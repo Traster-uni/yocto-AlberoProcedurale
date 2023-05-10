@@ -31,7 +31,6 @@ typedef struct Branch {
   vec3f     _end;
   vec3f     _direction;
   float     _length;
-  Branch*   _id; // TODO:potenzialmente inutile
   Branch*   father_ptr{};  // puntatore al branch padre
   vector<Branch> children;
   vector<vec3f*> influencePoints;
@@ -253,7 +252,6 @@ Branch growChild(Branch& fatherBranch, vec3f direction, mt19937& generator){
   newBranch._direction  = direction * fatherBranch._length;
   newBranch._end        = newBranch._direction + fatherBranch._end;
   newBranch._length     = fatherBranch._length;
-  newBranch._id         = &newBranch;
   newBranch.father_ptr  = &fatherBranch;
   newBranch.fertile     = false;
   newBranch.maxBranches = fatherBranch.maxBranches;

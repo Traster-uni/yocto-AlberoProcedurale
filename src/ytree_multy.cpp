@@ -136,7 +136,7 @@ void run(const vector<string>& args) {
    */
 
   // INSTANCES
-  attractionPoints crown;
+  attractionPoints crown; //stack?
   crown.ARRAY_SIZE = stoi(num_attrPoint);
   vector<Branch> treeArray; // a collection of all branches in the tree
   crown.attractionPointsPtr = new vec3f[crown.ARRAY_SIZE];
@@ -149,7 +149,7 @@ void run(const vector<string>& args) {
   crown.killDistance = stof(kill_range);
   // GENERATE THE CROWN OF ATTRACTION POINT
   // seeding
-  auto seedrnd = randomSeed(rnd_input, 0, 100000, rdm);
+  int seedrnd = randomSeed(rnd_input, 0, 100000, rdm);
   print_info("uniform seeding: {}, no random seed -> 58380", seedrnd);
   // generation
   if (!populateSphere(crown.attractionPointsPtr, crown.ARRAY_SIZE, stoi(num_attrPoint), rdm)){
@@ -185,7 +185,6 @@ void run(const vector<string>& args) {
       trunkGrowthDir,
       0.2,
       0,
-      nullptr,
       vector<Branch>(),
       vector<vec3f*>(),
       2,
@@ -219,24 +218,24 @@ void run(const vector<string>& args) {
   treeArray[treeArray.size()-1].trunk = false;    // first branch is trunk no more
   treeArray[treeArray.size()-1].branch = true;    // first branch is now a branch
 
-  std::unordered_set<Branch*> fertileSet = { treeArray[treeArray.size()-1]._id }; // first fertile branch._id pushed into control array
+  std::unordered_set<Branch*> fertileSet = { &treeArray[treeArray.size()-1] };
   while(!fertileSet.empty()){
     for (Branch& current : treeArray) {
       if (!current.trunk) {
         findInfluenceSet(current, crown);
         if (isFertile(current)) {
           current.fertile = true;
-          fertileSet.insert(current._id);
+          fertileSet.insert(&current);
         } else {
           current.fertile = false;
-          fertileSet.erase(current._id);
+          fertileSet.erase(&current);
           current.branch = false;
           current.leaf   = true;
         }
       }
     }
     for (Branch& current: treeArray){
-      if (current.fertile){
+      if (current.fertile) {
         // MODELS
         auto b_instance    = branchInstanceData;
         b_instance.frame.o = current._start;
@@ -244,11 +243,17 @@ void run(const vector<string>& args) {
         //
 
         auto dir = computeDirection(current, seedrnd);
-        if (current.children.size() < current.minBranches) { // TODO:codice ripetuto? perché?
-          Branch child = growChild(current, dir, rdm);
-          child.trunk  = false;
-          treeArray.push_back(child);
-        }else if (current.branch && current.children.size() < current.maxBranches){ // qui
+//        if (current.children.size() < current.minBranches) {  // TODO:codice ripetuto? perché?
+//          Branch child = growChild(current, dir, rdm);
+//          child.trunk  = false;
+//          treeArray.push_back(child);
+//        } else if (current.branch && current.children.size() < current.maxBranches) {  // qui
+//          Branch child = growChild(current, dir, rdm);
+//          child.trunk  = false;
+//          treeArray.push_back(child);
+//        }
+        if ((current.branch && current.children.size() < current.maxBranches) || \
+            (current.children.size() < current.minBranches)){
           Branch child = growChild(current, dir, rdm);
           child.trunk  = false;
           treeArray.push_back(child);
@@ -258,15 +263,6 @@ void run(const vector<string>& args) {
       }
     }
   }
-
-  // CYLINDERS MODELS
-//  int shapeCounter = 3; // counts the correct index for cy_inst to point to the correct model
-
-  /*
-   * Se devi creare un nuovo cilindro per ogni branch e inserirlo in un vettore, push_back()
-   * detiene il puntatore al cilindro e dunque non ne fa una copia.
-   */
-
 
   vector<vec3f> branchEndPoints;
   for ( auto b : treeArray){
