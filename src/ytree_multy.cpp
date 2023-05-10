@@ -258,6 +258,7 @@ void run(const vector<string>& args) {
 //          child.trunk  = false;
 //          treeArray.push_back(child);
 //        }
+        //TODO: DEBUG FOR INFINITE LOOP
         deleteAttractionPoints(current, crown, floorPos);
         clearInfluenceSet(current);
       }
