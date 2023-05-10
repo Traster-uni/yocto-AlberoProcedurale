@@ -220,7 +220,7 @@ void findInfluenceSet(Branch& current, attractionPoints& treeCrown) {
       current.influencePoints.push_back(&treeCrown.attractionPointsPtr[i]);
     }
   }
-  cout << "influenceSet.size= " << current.influencePoints.size() << endl;
+//  cout << "influenceSet.size= " << current.influencePoints.size() << endl;
 }
 
 
@@ -268,7 +268,7 @@ void clearInfluenceSet(Branch& branch){
 }
 
 
-void deleteAttractionPoints(Branch& current, attractionPoints& treeCrown){
+void deleteAttractionPoints(Branch& current, attractionPoints& treeCrown, const vec3f& floorPos){
   auto killDistance = treeCrown.killDistance;
 
 //  for (auto influ : current.influencePoints){
@@ -280,14 +280,14 @@ void deleteAttractionPoints(Branch& current, attractionPoints& treeCrown){
 //    }
 //  }
   for ( int i = current.influencePoints.size()-1; i >= 0; i-- ){
-    cout << "284: " << current.influencePoints.size() << endl;
+//    cout << "284: " << current.influencePoints.size() << endl;
     double d = length(current._end - *(current.influencePoints[i])); //TODO: errore
     //  STAMPA CONTENUTO
     if (d <= killDistance){
-      delete current.influencePoints[i];
+      *current.influencePoints[i] = floorPos;
     }
   }
-//  current.influencePoints.erase(current.influencePoints.begin(), current.influencePoints.end());
+  current.influencePoints.erase(current.influencePoints.begin(), current.influencePoints.end());
 }
 //
 void bubbleSort(vec3f x[], int size) {

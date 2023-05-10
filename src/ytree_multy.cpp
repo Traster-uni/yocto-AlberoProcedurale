@@ -22,8 +22,8 @@ using namespace std::string_literals;
 void run(const vector<string>& args) {
   // parameters
 //  auto scenename   = "scene.json"s;
-//   auto scenename = R"(C:\yocto-AlberoProcedurale\tests\tests_assets\node_crown\node_crown_test.json)"s;
-  auto scenename = "/home/tommasomarialopedote/Computer-graphics-project/yocto-AlberoProcedurale/tests/tests_assets/node_crown/node_crown_test.json"s;
+   auto scenename = R"(C:\yocto-AlberoProcedurale\tests\tests_assets\node_crown\node_crown_test.json)"s;
+//  auto scenename = "/home/tommasomarialopedote/Computer-graphics-project/yocto-AlberoProcedurale/tests/tests_assets/node_crown/node_crown_test.json"s;
 //  auto scenename = "/home/michi/Desktop/UNI/CG/yocto-AlberoProcedurale/tests/tests_assets/node_crown/node_crown_test.json"s;
   auto outname     = "point_image.png"s;
   auto paramsname  = ""s;
@@ -163,7 +163,7 @@ void run(const vector<string>& args) {
 
   // modeling for attrPoints
   float ModelScale = 0.4;
-  auto floorPos = scene.instances[0].frame.o;
+  const auto floorPos = scene.instances[0].frame.o;
   auto  attractionPointInstance = instance_data{frame3f{{ModelScale,0,0},
                                                               {0,ModelScale,0},
                                                               {0,0,ModelScale},
@@ -181,7 +181,7 @@ void run(const vector<string>& args) {
   vec3f trunkGrowthDir = {0, 0.5, 0};
   auto trunkBranch = Branch{
       floorPos,
-      floorPos += trunkGrowthDir,
+      floorPos + trunkGrowthDir,
       trunkGrowthDir,
       0.2,
       0,
@@ -243,22 +243,22 @@ void run(const vector<string>& args) {
         //
 
         auto dir = computeDirection(current, seedrnd);
-//        if (current.children.size() < current.minBranches) {  // TODO:codice ripetuto? perché?
-//          Branch child = growChild(current, dir, rdm);
-//          child.trunk  = false;
-//          treeArray.push_back(child);
-//        } else if (current.branch && current.children.size() < current.maxBranches) {  // qui
-//          Branch child = growChild(current, dir, rdm);
-//          child.trunk  = false;
-//          treeArray.push_back(child);
-//        }
-        if ((current.branch && current.children.size() < current.maxBranches) || \
-            (current.children.size() < current.minBranches)){
+        if (current.children.size() < current.minBranches) {  // TODO:codice ripetuto? perché?
+          Branch child = growChild(current, dir, rdm);
+          child.trunk  = false;
+          treeArray.push_back(child);
+        } else if (current.branch && current.children.size() < current.maxBranches) {  // qui
           Branch child = growChild(current, dir, rdm);
           child.trunk  = false;
           treeArray.push_back(child);
         }
-        deleteAttractionPoints(current, crown);
+//        if ((current.branch && current.children.size() < current.maxBranches) || \
+//            (current.children.size() < current.minBranches)){
+//          Branch child = growChild(current, dir, rdm);
+//          child.trunk  = false;
+//          treeArray.push_back(child);
+//        }
+        deleteAttractionPoints(current, crown, floorPos);
         clearInfluenceSet(current);
       }
     }
@@ -278,10 +278,12 @@ void run(const vector<string>& args) {
   scene.instances.push_back(cylinderInstances);
 
   // SPHERES MODELS
-  for (int i = 0; i < crown.ARRAY_SIZE; i++){
-    auto aP_instance = attractionPointInstance;
+  for (int i = 0; i < crown.ARRAY_SIZE; i++) {
+    if (crown.attractionPointsPtr[i] != floorPos) {
+    auto aP_instance    = attractionPointInstance;
     aP_instance.frame.o = crown.attractionPointsPtr[i];
     scene.instances.push_back(aP_instance);
+    }
   }
   delete crown.attractionPointsPtr;
 
