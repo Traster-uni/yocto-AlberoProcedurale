@@ -22,8 +22,8 @@ using namespace std::string_literals;
 void run(const vector<string>& args) {
   // parameters
 //  auto scenename   = "scene.json"s;
-   auto scenename = R"(C:\yocto-AlberoProcedurale\tests\tests_assets\node_crown\node_crown_test.json)"s;
-//  auto scenename = "/home/tommasomarialopedote/Computer-graphics-project/yocto-AlberoProcedurale/tests/tests_assets/node_crown/node_crown_test.json"s;
+//   auto scenename = R"(C:\yocto-AlberoProcedurale\tests\tests_assets\node_crown\node_crown_test.json)"s;
+  auto scenename = "/home/tommasomarialopedote/Computer-graphics-project/yocto-AlberoProcedurale/tests/tests_assets/node_crown/node_crown_test.json"s;
 //  auto scenename = "/home/michi/Desktop/UNI/CG/yocto-AlberoProcedurale/tests/tests_assets/node_crown/node_crown_test.json"s;
   auto outname     = "point_image.png"s;
   auto paramsname  = ""s;
@@ -244,11 +244,11 @@ void run(const vector<string>& args) {
         //
 
         auto dir = computeDirection(current, seedrnd);
-        if (current.children.size() < current.minBranches) {
+        if (current.children.size() < current.minBranches) { // TODO:codice ripetuto? perché?
           Branch child = growChild(current, dir, rdm);
           child.trunk  = false;
           treeArray.push_back(child);
-        }else if (current.branch && current.children.size() < current.maxBranches){
+        }else if (current.branch && current.children.size() < current.maxBranches){ // qui
           Branch child = growChild(current, dir, rdm);
           child.trunk  = false;
           treeArray.push_back(child);

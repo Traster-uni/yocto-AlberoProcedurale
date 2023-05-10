@@ -31,7 +31,7 @@ typedef struct Branch {
   vec3f     _end;
   vec3f     _direction;
   float     _length;
-  Branch*   _id;
+  Branch*   _id; // TODO:potenzialmente inutile
   Branch*   father_ptr{};  // puntatore al branch padre
   vector<Branch> children;
   vector<vec3f*> influencePoints;
@@ -133,7 +133,7 @@ bool populateSphere(vec3f array[], int const& ARRAY_SIZE, int num_points, mt1993
   if (num_points <= ARRAY_SIZE){
     for (int i = 0; i < ARRAY_SIZE; i++){
       array[i] = sample_sphere(generator);
-      cout << array[i].x << ", " << array[i].y << ", " << array[i].z << ", " << endl;
+//      cout << "sampleing: " << array[i].x << ", " << array[i].y << ", " << array[i].z << ", " << endl;
     }
     return true;
   }
@@ -221,6 +221,7 @@ void findInfluenceSet(Branch& current, attractionPoints& treeCrown) {
       current.influencePoints.push_back(&treeCrown.attractionPointsPtr[i]);
     }
   }
+  cout << "influenceSet.size= " << current.influencePoints.size() << endl;
 }
 
 
@@ -280,13 +281,15 @@ void deleteAttractionPoints(Branch& current, attractionPoints& treeCrown){
 //      delete influ;
 //    }
 //  }
-  for ( int i = current.influencePoints.size(); i >= 0; i-- ){
-    double d = distance(current._end, *current.influencePoints[i]);
+  for ( int i = current.influencePoints.size()-1; i >= 0; i-- ){
+    cout << "284: " << current.influencePoints.size() << endl;
+    double d = length(current._end - *(current.influencePoints[i])); //TODO: errore
+    //  STAMPA CONTENUTO
     if (d <= killDistance){
       delete current.influencePoints[i];
     }
   }
-  current.influencePoints.erase(current.influencePoints.begin(), current.influencePoints.end());
+//  current.influencePoints.erase(current.influencePoints.begin(), current.influencePoints.end());
 }
 //
 void bubbleSort(vec3f x[], int size) {
