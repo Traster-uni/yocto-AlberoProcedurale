@@ -22,9 +22,9 @@ using namespace std::string_literals;
 void run(const vector<string>& args) {
   // parameters
 //  auto scenename   = "scene.json"s;
-   auto scenename = R"(C:\yocto-AlberoProcedurale\tests\tests_assets\node_crown\node_crown_test.json)"s;
+//   auto scenename = R"(C:\yocto-AlberoProcedurale\tests\tests_assets\node_crown\node_crown_test.json)"s;
 //  auto scenename = "/home/tommasomarialopedote/Computer-graphics-project/yocto-AlberoProcedurale/tests/tests_assets/node_crown/node_crown_test.json"s;
-//  auto scenename = "/home/michi/Desktop/UNI/CG/yocto-AlberoProcedurale/tests/tests_assets/node_crown/node_crown_test.json"s;
+  auto scenename = "/home/michi/Desktop/UNI/CG/yocto-AlberoProcedurale/tests/tests_assets/node_crown/node_crown_test.json"s;
   auto outname     = "point_image.png"s;
   auto paramsname  = ""s;
   auto interactive = true;
@@ -197,7 +197,6 @@ void run(const vector<string>& args) {
 
   treeArray.push_back(trunkBranch);
   while (checkHeight(trunkBranch, minVec3f)){
-    auto t = trunkBranch;
     trunkBranch = growChild(trunkBranch, trunkGrowthDir, rdm, 1);
     trunkBranch->fertile = false;
     treeArray.push_back(trunkBranch);
@@ -276,7 +275,7 @@ void run(const vector<string>& args) {
     scene.instances.push_back(aP_instance);
     }
   }
-  delete crown.attractionPointsPtr;
+  // delete crown.attractionPointsPtr;
 
   //////////////////////////////////////////////////////////////////////////////
 

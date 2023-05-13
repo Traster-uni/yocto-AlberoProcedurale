@@ -214,13 +214,13 @@ bool canBranch(mt19937& generator){
 void findInfluenceSet(Branch *current, attractionPoints& treeCrown) {
   double radiusInfluence = treeCrown.radiusInfluence;
   for (int i = 0; i < treeCrown.ARRAY_SIZE; i++) {
-  // cout << "findInfluenceSet: " << &treeCrown.attractionPointsPtr[i] << endl;
-    double d = distance(current->_end, treeCrown.attractionPointsPtr[i]);
-    if (d <= radiusInfluence) {
-      current->influencePoints.push_back(&treeCrown.attractionPointsPtr[i]);
+    if (treeCrown.attractionPointsPtr[i] != vec3f{0,0,0}) {
+      double d = distance(current->_end, treeCrown.attractionPointsPtr[i]);
+      if (d <= radiusInfluence) {
+        current->influencePoints.push_back(&treeCrown.attractionPointsPtr[i]);
+      }
     }
   }
-//  cout << "influenceSet.size= " << current.influencePoints.size() << endl;
 }
 
 
@@ -273,7 +273,7 @@ Branch *growChild(Branch *fatherBranch, vec3f direction, mt19937& generator, int
       newBranch.leaf = true;
   }
   fatherBranch->children.push_back(newBranch);
-  return &fatherBranch->children[fatherBranch->children.size()];
+  return &fatherBranch->children[fatherBranch->children.size()-1];
 }
 
 
