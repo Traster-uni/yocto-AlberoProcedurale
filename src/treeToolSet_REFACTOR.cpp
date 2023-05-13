@@ -187,13 +187,13 @@ float scaleLength(float previousLength, string treeName){
 // SPATIAL COLONIZATION FUNCTIONS
 // Simple checks
 
-bool checkHeight(Branch current, vec3f minVec) { return current._end.y < minVec.y; }
+bool checkHeight(Branch* current, vec3f minVec) { return current->_end.y < minVec.y; }
 
 
-bool isFertile(Branch& current){
-  if (current.depth == 0){
+bool isFertile(Branch *current){
+  if (current->depth == 0){
     return false;
-  }else if (current.children.size() < current.maxBranches && !current.influencePoints.empty()){
+  }else if (current->children.size() < current->maxBranches && !current->influencePoints.empty()){
     return true;
   }
   return false;
@@ -211,30 +211,30 @@ bool canBranch(mt19937& generator){
 
 // Structs modifications
 
-void findInfluenceSet(Branch& current, attractionPoints& treeCrown) {
+void findInfluenceSet(Branch *current, attractionPoints& treeCrown) {
   double radiusInfluence = treeCrown.radiusInfluence;
   for (int i = 0; i < treeCrown.ARRAY_SIZE; i++) {
   // cout << "findInfluenceSet: " << &treeCrown.attractionPointsPtr[i] << endl;
-    double d = distance(current._end, treeCrown.attractionPointsPtr[i]);
+    double d = distance(current->_end, treeCrown.attractionPointsPtr[i]);
     if (d <= radiusInfluence) {
-      current.influencePoints.push_back(&treeCrown.attractionPointsPtr[i]);
+      current->influencePoints.push_back(&treeCrown.attractionPointsPtr[i]);
     }
   }
 //  cout << "influenceSet.size= " << current.influencePoints.size() << endl;
 }
 
 
-vec3f computeDirection(Branch& fatherBranch, const int& seed){
+vec3f computeDirection(Branch* fatherBranch, const int& seed){
   rng_state rng = make_rng(seed);
   vec3f newDir = {0, 0, 0};
   vec3f num;
   float denom;
-  for (auto ip : fatherBranch.influencePoints) {
-    num = *ip - fatherBranch._end;
+  for (auto ip : fatherBranch->influencePoints) {
+    num = *ip - fatherBranch->_end;
     denom  = length(num);
     newDir += vec3f{num.x / denom, num.y / denom, num.z / denom};
   }
-  newDir /= fatherBranch.influencePoints.size();
+  newDir /= fatherBranch->influencePoints.size();
   auto newDir_norm = sqrt(dot(newDir, newDir));
   return (newDir / newDir_norm) + rand3f(rng);
 }
@@ -246,29 +246,43 @@ vec3f rndDirection(Branch& fatherBranch, const int &seed){
 }
 
 
-Branch growChild(Branch& fatherBranch, vec3f direction, mt19937& generator){
+Branch *growChild(Branch *fatherBranch, vec3f direction, mt19937& generator, int type){
   Branch newBranch;
-  newBranch._start      = fatherBranch._end;
-  newBranch._direction  = direction * fatherBranch._length;
-  newBranch._end        = newBranch._direction + fatherBranch._end;
-  newBranch._length     = fatherBranch._length;
-  newBranch.father_ptr  = &fatherBranch;
+  newBranch._start      = fatherBranch->_end;
+  newBranch._direction  = direction * fatherBranch->_length;
+  newBranch._end        = newBranch._direction + fatherBranch->_end;
+  newBranch._length     = fatherBranch->_length;
+  newBranch.father_ptr  = fatherBranch;
   newBranch.fertile     = false;
-  newBranch.maxBranches = fatherBranch.maxBranches;
-  newBranch.minBranches = fatherBranch.minBranches;
-  newBranch.depth = fatherBranch.depth-1;
+  newBranch.maxBranches = fatherBranch->maxBranches;
+  newBranch.minBranches = fatherBranch->minBranches;
+  newBranch.depth = fatherBranch->depth-1;
   newBranch.branch = canBranch(generator);
-  fatherBranch.children.push_back(newBranch);
-  return newBranch;
+  switch (type) {
+    case 1:
+      newBranch.trunk = true;
+      newBranch.branch = false;
+      newBranch.leaf = false;
+    case 2:
+      newBranch.trunk = false;
+      newBranch.branch = true;
+      newBranch.leaf = false;
+    case 3:
+      newBranch.trunk = false;
+      newBranch.branch = false;
+      newBranch.leaf = true;
+  }
+  fatherBranch->children.push_back(newBranch);
+  return &fatherBranch->children[fatherBranch->children.size()];
 }
 
 
-void clearInfluenceSet(Branch& branch){
-    branch.influencePoints.clear();
+void clearInfluenceSet(Branch *branch){
+    branch->influencePoints.clear();
 }
 
 
-void deleteAttractionPoints(Branch& current, attractionPoints& treeCrown, const vec3f& floorPos){
+void deleteAttractionPoints(Branch* current, attractionPoints& treeCrown, const vec3f& floorPos){
   auto killDistance = treeCrown.killDistance;
 
 //  for (auto influ : current.influencePoints){
@@ -279,15 +293,15 @@ void deleteAttractionPoints(Branch& current, attractionPoints& treeCrown, const 
 //      delete influ;
 //    }
 //  }
-  for ( int i = current.influencePoints.size()-1; i >= 0; i-- ){
+  for ( int i = current->influencePoints.size()-1; i >= 0; i-- ){
 //    cout << "284: " << current.influencePoints.size() << endl;
-    double d = length(current._end - *(current.influencePoints[i])); //TODO: errore
+    double d = length(current->_end - *(current->influencePoints[i])); //TODO: errore
     //  STAMPA CONTENUTO
     if (d <= killDistance){
-      *current.influencePoints[i] = floorPos;
+      *current->influencePoints[i] = floorPos;
     }
   }
-  current.influencePoints.erase(current.influencePoints.begin(), current.influencePoints.end());
+  current->influencePoints.erase(current->influencePoints.begin(), current->influencePoints.end());
 }
 //
 void bubbleSort(vec3f x[], int size) {
