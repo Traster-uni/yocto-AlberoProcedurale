@@ -245,18 +245,18 @@ vec3f rndDirection(Branch& fatherBranch, const int &seed){
 
 
 Branch *growChild(Branch *fatherBranch, vec3f direction, mt19937& generator){
-  Branch newBranch;
-  newBranch._start      = fatherBranch->_end;
-  newBranch._direction  = direction * fatherBranch->_length;
-  newBranch._end        = newBranch._direction + fatherBranch->_end;
-  newBranch._length     = fatherBranch->_length;
-  newBranch.father_ptr  = fatherBranch;
-  newBranch.fertile     = false;
-  newBranch.maxBranches = fatherBranch->maxBranches;
-  newBranch.minBranches = fatherBranch->minBranches;
-  newBranch.depth = fatherBranch->depth-1;
-  newBranch.branch = canBranch(generator);
-  fatherBranch->children.push_back(newBranch);
+  auto newBranch         = new Branch ;
+  newBranch->_start      = fatherBranch->_end;
+  newBranch->_direction  = direction * fatherBranch->_length;
+  newBranch->_end        = newBranch->_direction + fatherBranch->_end;
+  newBranch->_length     = fatherBranch->_length;
+  newBranch->father_ptr  = fatherBranch;
+  newBranch->fertile     = false;
+  newBranch->maxBranches = fatherBranch->maxBranches;
+  newBranch->minBranches = fatherBranch->minBranches;
+  newBranch->depth       = fatherBranch->depth-1;
+  newBranch->branch      = canBranch(generator);
+  fatherBranch->children.push_back(*newBranch);
   return &fatherBranch->children[fatherBranch->children.size()-1];
 }
 
