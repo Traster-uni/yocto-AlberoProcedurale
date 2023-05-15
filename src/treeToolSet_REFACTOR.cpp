@@ -125,7 +125,7 @@ vec3f computeAngles(vec3f origin, vec3f direction) {
   }
   return direction;
 }
-
+//TODO: AGGIORNA treeToolSet.cpp con le modifiche alle funzioni apportate in questo file;
 bool populateSphere(vec3f array[], int const& ARRAY_SIZE, int num_points, mt19937& generator) {
   if (num_points <= ARRAY_SIZE){
     for (int i = 0; i < ARRAY_SIZE; i++){

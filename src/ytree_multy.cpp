@@ -13,7 +13,7 @@
 #include <stdlib.h>
 #include <unordered_set>
 
-#include "treeToolSet_REFACTOR.cpp"
+#include "treeToolSet.cpp"
 
 using namespace yocto;
 using namespace std::string_literals;
@@ -137,10 +137,7 @@ void run(const vector<string>& args) {
 
   // INSTANCES
   attractionPoints crown; //stack?
-  crown.ARRAY_SIZE = stoi(num_attrPoint);
-  vector<Branch*> treeArray; // a collection of all branches in the tree
-  crown.attractionPointsPtr = new vec3f[crown.ARRAY_SIZE];
-  cout << "crown.attractionarrayPTR= " << crown.attractionPointsPtr << endl;
+  vector<Branch> treeArray; // a collection of all branches in the tree
   // random generator
   random_device rdmGenerator;
   mt19937 rdm(rdmGenerator());
@@ -152,14 +149,11 @@ void run(const vector<string>& args) {
   int seedrnd = randomSeed(rnd_input, 0, 100000, rdm);
   print_info("uniform seeding: {}, no random seed -> 58380", seedrnd);
   // generation
-  if (!populateSphere(crown.attractionPointsPtr, crown.ARRAY_SIZE, stoi(num_attrPoint), rdm)){
-    print_info("Too many attraction points. Choose less or equal to 5000");
-    return ;
-  }
+  crown.attractionPointsArray = populateSphere(stoi(num_attrPoint), seedrnd, rdm);
   // sort attraction points vertically
-  bubbleSort(crown.attractionPointsPtr, crown.ARRAY_SIZE);
+  bubbleSort(crown.attractionPointsArray, crown.attractionPointsArray.size());
   // l'attraction Point piu' basso.
-  auto minVec3f = crown.attractionPointsPtr[0];
+  vec3f minVec3f = crown.attractionPointsArray[0];
 
   // modeling for attrPoints
   float ModelScale = 0.4;
@@ -179,14 +173,14 @@ void run(const vector<string>& args) {
 
   // trunk instance and growth direction
   vec3f trunkGrowthDir = {0, 0.5, 0};
-  auto trunkBranch = new Branch{
+  auto trunkBranch = Branch{
       floorPos,
       floorPos + trunkGrowthDir,
       trunkGrowthDir,
       0.2,
       0,
       vector<Branch>(),
-      vector<vec3f*>(),
+      vector<attrPoint3f>(),
       2,
       1,
       70,
@@ -198,48 +192,46 @@ void run(const vector<string>& args) {
   treeArray.push_back(trunkBranch);
   while (checkHeight(trunkBranch, minVec3f)){
     trunkBranch = growChild(trunkBranch, trunkGrowthDir, rdm);
-    trunkBranch->branch = false;
-    trunkBranch->fertile = false;
+    trunkBranch.branch = false;
+    trunkBranch.fertile = false;
     treeArray.push_back(trunkBranch);
 
     // MODELS
     auto b_instance    = branchInstanceData;
-    b_instance.frame.o = trunkBranch->_start;
+    b_instance.frame.o = trunkBranch._start;
     scene.instances.push_back(b_instance);
   }
   // setup to grow crown
-  treeArray[treeArray.size()-1]->fertile = true;   // first branch is forcebly fertile;
-  treeArray[treeArray.size()-1]->branch = true;    // first branch is now a branch
+  treeArray[treeArray.size()-1].fertile = true;   // first branch is forcebly fertile;
+  treeArray[treeArray.size()-1].branch = true;    // first branch is now a branch
 
-  std::unordered_set<Branch*> fertileSet = { treeArray[treeArray.size()-1] };
+  std::unordered_set<Branch*> fertileSet = { &treeArray[treeArray.size()-1] };
   while(!fertileSet.empty()){
-    for (int i = 0; i < treeArray.size(); i++) {
-      auto current = treeArray[i];
-      if (treeArray[i]->branch) {
-        findInfluenceSet(treeArray[i], crown);
-        cout << "treeArray[" << i << "] : " << treeArray[i]->influencePoints.size() << endl;
-        if (isFertile(treeArray[i])) {
-          treeArray[i]->fertile = true;
-          fertileSet.insert(treeArray[i]);
+    for (Branch& current : treeArray) {
+      if (current.branch) {
+        findInfluenceSet(current, crown);
+        if (isFertile(current)) {
+          current.fertile = true;
+          fertileSet.insert(&current);
         } else {
-          treeArray[i]->fertile = false;
-          fertileSet.erase(treeArray[i]);
+          current.fertile = false;
+          fertileSet.erase(&current);
         }
       }
     }
-    for (int i = 0; i < treeArray.size(); i++){
-      if (treeArray[i]->fertile) {
+    for (Branch& current: treeArray){
+      if (current.fertile) {
         // MODELS
         auto b_instance    = branchInstanceData;
-        b_instance.frame.o = treeArray[i]->_start;
+        b_instance.frame.o = current._start;
         scene.instances.push_back(b_instance);
         //
 
-        auto dir = computeDirection(treeArray[i], seedrnd);
-        if (treeArray[i]->children.size() < treeArray[i]->minBranches) {  // TODO:codice ripetuto? perché?
+        auto dir = computeDirection(current, seedrnd);
+        if (current.children.size() < current.minBranches) {  // TODO:codice ripetuto? perché?
           Branch* child = growChild(treeArray[i], dir, rdm);
           treeArray.push_back(child);
-        } else if (treeArray[i]->branch && treeArray[i]->children.size() < treeArray[i]->maxBranches) {  // qui
+        } else if (current.branch && current.children.size() < current.->maxBranches) {  // qui
           Branch* child = growChild(treeArray[i], dir, rdm);
           treeArray.push_back(child);
         }
@@ -250,7 +242,7 @@ void run(const vector<string>& args) {
 //          treeArray.push_back(child);
 //        }
         //TODO: DEBUG FOR INFINITE LOOP
-        deleteAttractionPoints(treeArray[i], crown, floorPos);
+        deleteAttractionPoints(current, crown, floorPos);
         clearInfluenceSet(treeArray[i]);
       }
     }
@@ -258,8 +250,8 @@ void run(const vector<string>& args) {
 
   vector<vec3f> branchEndPoints;
   for ( auto b : treeArray) {
-    branchEndPoints.push_back(b->_start);
-    branchEndPoints.push_back(b->_end);
+    branchEndPoints.push_back(b._start);
+    branchEndPoints.push_back(b._end);
   }
   shape_data cylinders = lines_to_cylinders(branchEndPoints);
   scene.shapes.push_back(cylinders);
@@ -270,10 +262,10 @@ void run(const vector<string>& args) {
   scene.instances.push_back(cylinderInstances);
 
   // SPHERES MODELS
-  for (int i = 0; i < crown.ARRAY_SIZE; i++) {
-    if (crown.attractionPointsPtr[i] != floorPos) {
+  for (auto& s : crown.attractionPointsArray) {
+    if ( s != floorPos) {
     auto aP_instance    = attractionPointInstance;
-    aP_instance.frame.o = crown.attractionPointsPtr[i];
+    aP_instance.frame.o = s;
     scene.instances.push_back(aP_instance);
     }
   }

@@ -24,7 +24,7 @@ typedef struct attrPoint3f {
 
 typedef struct attractionPoints {
   // Conteiner per la corona di punti di attrazione
-  vector<attrPoint3f> attractionPointsArray;  // vettore di attraction points in uno spazio
+  vector<vec3f> attractionPointsArray;  // vettore di attraction points in uno spazio
   string treeCrownShape;  // directoy del modello blender per la forma della chioma
   float  radiusInfluence;  // raggio di influenza di ogni punto di attrazione
   float  killDistance;     // raggio di eliminazione dei punti di influenza
@@ -37,7 +37,6 @@ typedef struct Branch {
   vec3f     _end;
   vec3f     _direction;
   float     _length;
-  Branch*   _id;
   Branch*   father_ptr{};  // puntatore al branch padre
   vector<Branch> children;
   vector<attrPoint3f> influencePoints;
@@ -46,9 +45,7 @@ typedef struct Branch {
   int   depth;
   float trunkDiameter; // Diametro del tronco sul punto.
   bool  fertile;      // definisce se il nodo è fertile o meno
-  bool  trunk;        // is trunk
   bool  branch;       // is branch
-  bool  leaf;         // is leaf
 } Branch;
 
 template <typename T>
@@ -338,5 +335,19 @@ auto quicksort_attrPoint3f(vector<attrPoint3f>& vec, int start, int end) {
 }
 //
 
+
+void bubbleSort(vector<vec3f> x, int size) {
+  //from https://cplusplus.com/forum/beginner/12731/
+  bool exchanges;
+  do {
+        exchanges = false;  // assume no exchanges
+        for (int i=0; i<size-1; i++) {
+            if (x[i].y > x[i+1].y) {
+        auto temp = x[i]; x[i] = x[i+1]; x[i+1] = temp;
+        exchanges = true;  // after exchange, must look again
+            }
+        }
+  } while (exchanges);
+}
 }  // namespace yocto
 
