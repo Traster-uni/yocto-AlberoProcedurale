@@ -39,9 +39,7 @@ typedef struct Branch {
   int   depth;
   float trunkDiameter; // Diametro del tronco sul punto.
   bool  fertile;      // definisce se il nodo è fertile o meno
-  bool  trunk;        // it's a trunk
   bool  branch;       // it's a branch
-  bool  leaf;         // it's a leaf
 } Branch;
 
 template <typename T>
@@ -246,7 +244,7 @@ vec3f rndDirection(Branch& fatherBranch, const int &seed){
 }
 
 
-Branch *growChild(Branch *fatherBranch, vec3f direction, mt19937& generator, int type){
+Branch *growChild(Branch *fatherBranch, vec3f direction, mt19937& generator){
   Branch newBranch;
   newBranch._start      = fatherBranch->_end;
   newBranch._direction  = direction * fatherBranch->_length;
@@ -258,20 +256,6 @@ Branch *growChild(Branch *fatherBranch, vec3f direction, mt19937& generator, int
   newBranch.minBranches = fatherBranch->minBranches;
   newBranch.depth = fatherBranch->depth-1;
   newBranch.branch = canBranch(generator);
-  switch (type) {
-    case 1:
-      newBranch.trunk = true;
-      newBranch.branch = false;
-      newBranch.leaf = false;
-    case 2:
-      newBranch.trunk = false;
-      newBranch.branch = true;
-      newBranch.leaf = false;
-    case 3:
-      newBranch.trunk = false;
-      newBranch.branch = false;
-      newBranch.leaf = true;
-  }
   fatherBranch->children.push_back(newBranch);
   return &fatherBranch->children[fatherBranch->children.size()-1];
 }
@@ -285,14 +269,6 @@ void clearInfluenceSet(Branch *branch){
 void deleteAttractionPoints(Branch* current, attractionPoints& treeCrown, const vec3f& floorPos){
   auto killDistance = treeCrown.killDistance;
 
-//  for (auto influ : current.influencePoints){
-//    double d = distance(current._end, *influ);
-//
-//    if (d <= killDistance){
-//      cout << "deleteAttractionPoints nr: " << influ << endl;
-//      delete influ;
-//    }
-//  }
   for ( int i = current->influencePoints.size()-1; i >= 0; i-- ){
 //    cout << "284: " << current.influencePoints.size() << endl;
     double d = length(current->_end - *(current->influencePoints[i])); //TODO: errore

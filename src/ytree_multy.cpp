@@ -22,9 +22,9 @@ using namespace std::string_literals;
 void run(const vector<string>& args) {
   // parameters
 //  auto scenename   = "scene.json"s;
-//   auto scenename = R"(C:\yocto-AlberoProcedurale\tests\tests_assets\node_crown\node_crown_test.json)"s;
+   auto scenename = R"(C:\yocto-AlberoProcedurale\tests\tests_assets\node_crown\node_crown_test.json)"s;
 //  auto scenename = "/home/tommasomarialopedote/Computer-graphics-project/yocto-AlberoProcedurale/tests/tests_assets/node_crown/node_crown_test.json"s;
-  auto scenename = "/home/michi/Desktop/UNI/CG/yocto-AlberoProcedurale/tests/tests_assets/node_crown/node_crown_test.json"s;
+//  auto scenename = "/home/michi/Desktop/UNI/CG/yocto-AlberoProcedurale/tests/tests_assets/node_crown/node_crown_test.json"s;
   auto outname     = "point_image.png"s;
   auto paramsname  = ""s;
   auto interactive = true;
@@ -192,12 +192,13 @@ void run(const vector<string>& args) {
       70,
       0.1,
       false,
-      true,
-      false};
+      false
+      };
 
   treeArray.push_back(trunkBranch);
   while (checkHeight(trunkBranch, minVec3f)){
-    trunkBranch = growChild(trunkBranch, trunkGrowthDir, rdm, 1);
+    trunkBranch = growChild(trunkBranch, trunkGrowthDir, rdm);
+    trunkBranch->branch = false;
     trunkBranch->fertile = false;
     treeArray.push_back(trunkBranch);
 
@@ -208,14 +209,15 @@ void run(const vector<string>& args) {
   }
   // setup to grow crown
   treeArray[treeArray.size()-1]->fertile = true;   // first branch is forcebly fertile;
-  treeArray[treeArray.size()-1]->trunk = false;    // first branch is trunk no more
   treeArray[treeArray.size()-1]->branch = true;    // first branch is now a branch
 
   std::unordered_set<Branch*> fertileSet = { treeArray[treeArray.size()-1] };
   while(!fertileSet.empty()){
     for (int i = 0; i < treeArray.size(); i++) {
-      if (!treeArray[i]->trunk) {
+      auto current = treeArray[i];
+      if (treeArray[i]->branch) {
         findInfluenceSet(treeArray[i], crown);
+        cout << "treeArray[" << i << "] : " << treeArray[i]->influencePoints.size() << endl;
         if (isFertile(treeArray[i])) {
           treeArray[i]->fertile = true;
           fertileSet.insert(treeArray[i]);
@@ -235,10 +237,10 @@ void run(const vector<string>& args) {
 
         auto dir = computeDirection(treeArray[i], seedrnd);
         if (treeArray[i]->children.size() < treeArray[i]->minBranches) {  // TODO:codice ripetuto? perché?
-          Branch* child = growChild(treeArray[i], dir, rdm, 2);
+          Branch* child = growChild(treeArray[i], dir, rdm);
           treeArray.push_back(child);
         } else if (treeArray[i]->branch && treeArray[i]->children.size() < treeArray[i]->maxBranches) {  // qui
-          Branch* child = growChild(treeArray[i], dir, rdm, 2);
+          Branch* child = growChild(treeArray[i], dir, rdm);
           treeArray.push_back(child);
         }
 //        if ((current.branch && current.children.size() < current.maxBranches) || \
@@ -255,7 +257,7 @@ void run(const vector<string>& args) {
   }
 
   vector<vec3f> branchEndPoints;
-  for ( auto b : treeArray){
+  for ( auto b : treeArray) {
     branchEndPoints.push_back(b->_start);
     branchEndPoints.push_back(b->_end);
   }
