@@ -274,7 +274,7 @@ void deleteAttractionPoints(Branch* current, attractionPoints& treeCrown, const 
     double d = length(current->_end - *(current->influencePoints[i])); //TODO: errore
     //  STAMPA CONTENUTO
     if (d <= killDistance){
-      *current->influencePoints[i] = floorPos;
+      delete current->influencePoints[i];
     }
   }
   current->influencePoints.erase(current->influencePoints.begin(), current->influencePoints.end());
