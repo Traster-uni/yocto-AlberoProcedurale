@@ -24,7 +24,7 @@ typedef struct attrPoint3f {
 
 typedef struct attractionPoints {
   // Conteiner per la corona di punti di attrazione
-  vector<vec3f> attractionPointsArray;  // vettore di attraction points in uno spazio
+  vector<attrPoint3f> attractionPointsArray;  // vettore di attraction points in uno spazio
   string treeCrownShape;  // directoy del modello blender per la forma della chioma
   float  radiusInfluence;  // raggio di influenza di ogni punto di attrazione
   float  killDistance;     // raggio di eliminazione dei punti di influenza
@@ -257,7 +257,6 @@ Branch growChild(Branch& fatherBranch, vec3f direction, mt19937& generator){
   newBranch._direction  = direction * fatherBranch._length;
   newBranch._end        = newBranch._direction + fatherBranch._end;
   newBranch._length     = fatherBranch._length;
-  newBranch._id         = &newBranch;
   newBranch.father_ptr  = &fatherBranch;
   newBranch.fertile     = false;
   newBranch.maxBranches = fatherBranch.maxBranches;
@@ -336,13 +335,13 @@ auto quicksort_attrPoint3f(vector<attrPoint3f>& vec, int start, int end) {
 //
 
 
-void bubbleSort(vector<vec3f> x, int size) {
+void bubbleSort_ap3f(vector<attrPoint3f> x, int size) {
   //from https://cplusplus.com/forum/beginner/12731/
   bool exchanges;
   do {
         exchanges = false;  // assume no exchanges
         for (int i=0; i<size-1; i++) {
-            if (x[i].y > x[i+1].y) {
+            if (x[i].coords.y > x[i+1].coords.y) {
         auto temp = x[i]; x[i] = x[i+1]; x[i+1] = temp;
         exchanges = true;  // after exchange, must look again
             }
