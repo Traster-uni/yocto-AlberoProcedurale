@@ -43,33 +43,23 @@ typedef struct Branch {
   int   maxBranches; // definisce il numero massimo di figli generabili
   int   minBranches; // definisce il numero minimo di figli da generare
   int   depth;
-  float trunkDiameter; // Diametro del tronco sul punto.
   bool  fertile;      // definisce se il nodo è fertile o meno
-  bool  branch;       // is branch
+  bool  branch;       // pseudo random boolean value controlled by canBranch()
+  bool  trunk;
+
+  bool operator==(const Branch& t) const{
+    return (this->_start == t._start);
+  }
 } Branch;
 
-template <typename T>
-T maxInVector (vector<T> a){
-  auto max = a[0];
-  for (auto elem : a){
-    if (elem > max){
-      max = elem;
+class BranchHash {
+ public:
+     float operator()(const Branch& t) const{
+      return t._start.x + t._start.y + t._start.z * 100;
     }
-  }
-  return max;
-}
+};
 
 // UTIL FUNCTIONS
-auto sample_sphere(mt19937& generator){
-  uniform_real_distribution<float> floatDistribution(-1, 1);
-
-  vec3f rvc3f = {floatDistribution(generator), floatDistribution(generator), floatDistribution(generator)};
-  double mag = sqrt(sum(vec3f{ rvc3f.x*rvc3f.x, rvc3f.y*rvc3f.y, rvc3f.z*rvc3f.z}));
-  float c = ::cbrt(floatDistribution(generator));
-  return rvc3f * c;
-}
-
-
 int randomSeed(bool random, const int& interval_start, const int& interval_end, mt19937& generator) {
     if (!random) {
         return 58380;
@@ -77,6 +67,27 @@ int randomSeed(bool random, const int& interval_start, const int& interval_end, 
         uniform_int_distribution<int> intDistribution(interval_start, interval_end);
         return intDistribution(generator);
     }
+}
+
+
+auto sample_sphere(mt19937& generator){
+    uniform_real_distribution<float> floatDistribution(-1, 1);
+
+    vec3f rvc3f = {floatDistribution(generator), floatDistribution(generator), floatDistribution(generator)};
+    double mag = sqrt(sum(vec3f{ rvc3f.x*rvc3f.x, rvc3f.y*rvc3f.y, rvc3f.z*rvc3f.z}));
+    float c = ::cbrt(floatDistribution(generator));
+    return rvc3f * c;
+}
+
+
+vector<attrPoint3f> populateSphere(int num_points, mt19937& generator) {
+    vector<attrPoint3f> rdmPoints_into_sphere;
+    int ID = 0;
+    for (auto i : range(num_points)){
+        rdmPoints_into_sphere.push_back(attrPoint3f{sample_sphere(generator), ID});
+        ID++;
+    }
+    return rdmPoints_into_sphere;
 }
 
 
@@ -132,43 +143,6 @@ vec3f computeAngles(vec3f origin, vec3f direction) {
   return direction;
 }
 
-vector<attrPoint3f> populateSphere(int num_points, const int& seed, mt19937& generator) {
-  auto rng = make_rng(seed); // seed the generator
-  vector<attrPoint3f> rdmPoints_into_sphere;
-  int ID = 0;
-  for (auto i : range(num_points)){
-    rdmPoints_into_sphere.push_back(attrPoint3f{sample_sphere(generator), ID});
-    ID++;
-  }
-  return rdmPoints_into_sphere;
-}
-
-
-float scaleTrunkDiameter(float previousDiameter, string treeName){
-  /*  Scala secondo una percentuale fissa il diametro di ogni treeNode
-   *  Imposta un rateo per tipologia di albero
-   */
-  if (treeName == "default") {
-        float scale = 0.01;
-        if (previousDiameter > 0){
-          float newDiameter;
-          newDiameter = previousDiameter-(previousDiameter*scale);
-          return newDiameter;
-        }
-  }
-
-  if (treeName == "tree2") {
-        float value = 0.5;
-        if (previousDiameter > 0){
-         float newDiameter;
-         newDiameter = previousDiameter-value; //diametro scalato di una quantita fissa
-         return newDiameter;
-        }
-  }
-
-  return -1; // treetype not defined lancia un errore
-}
-
 
 float scaleLength(float previousLength, string treeName){
   if (treeName == "default") {
@@ -195,10 +169,17 @@ bool checkHeight(Branch current, vec3f minVec) { return current._end.y < minVec.
 
 
 bool isFertile(Branch& current){
-  if (current.depth == 0){
+  if (current.children.size() >= current.maxBranches || \
+      current.depth <= 0 || current.influencePoints.empty()){
         return false;
-  }else if (current.children.size() < current.maxBranches &&
-             !current.influencePoints.empty()){
+  }
+  return true;
+}
+
+
+bool checkChild(Branch& current){
+  if (current.children.size() < current.minBranches || \
+      (current.branch && current.children.size() < current.maxBranches)){
         return true;
   }
   return false;
@@ -215,7 +196,6 @@ bool canBranch(mt19937& generator){
 
 
 // Structs modifications
-
 void findInfluenceSet(Branch& current, attractionPoints& treeCrown) {
 //  cout << " # > SEARCHING FOR INFLUENCE POINTS" << endl;
   double radiusInfluence = treeCrown.radiusInfluence;
@@ -228,26 +208,21 @@ void findInfluenceSet(Branch& current, attractionPoints& treeCrown) {
 }
 
 
-vec3f computeDirection(Branch& fatherBranch, const int& seed){
-  rng_state rng = make_rng(seed);
+vec3f computeDirection(Branch& currBranch, mt19937& generator){
   vec3f newDir = {0, 0, 0};
   vec3f num;
+  uniform_real_distribution<float> floatDistribution(-0.2, 0.2);
+  vec3f rvc3f = {floatDistribution(generator), floatDistribution(generator), floatDistribution(generator)};
   float denom;
-  for (auto& ip : fatherBranch.influencePoints) {
+  for (auto& ip : currBranch.influencePoints) {
     auto ip_local = ip;
-    num = ip_local.coords - fatherBranch._end;
-    denom  = length(num);
+    num           = ip_local.coords - currBranch._end;
+    denom         = length(num);
     newDir += vec3f{num.x / denom, num.y / denom, num.z / denom};
   }
-  newDir /= fatherBranch.influencePoints.size();
+  newDir /= currBranch.influencePoints.size();
   auto newDir_norm = sqrt(dot(newDir, newDir));
-  return (newDir / newDir_norm) + rand3f(rng);
-}
-
-
-vec3f rndDirection(Branch& fatherBranch, const int &seed){
-  rng_state rng = make_rng(seed);
-  return fatherBranch._direction += rand3f(rng);
+  return (newDir / newDir_norm) + rvc3f;
 }
 
 
@@ -263,13 +238,9 @@ Branch growChild(Branch& fatherBranch, vec3f direction, mt19937& generator){
   newBranch.minBranches = fatherBranch.minBranches;
   newBranch.depth = fatherBranch.depth-1;
   newBranch.branch = canBranch(generator);
+  newBranch.trunk = false;
   fatherBranch.children.push_back(newBranch);
   return newBranch;
-}
-
-
-void clearInfluenceSet(Branch& branch){
-    branch.influencePoints.clear();
 }
 
 
@@ -288,6 +259,11 @@ void deleteAttractionPoints(Branch& current, attractionPoints& treeCrown){
       }
     }
   }
+}
+
+
+void clearInfluenceSet(Branch& branch){
+  branch.influencePoints.clear();
 }
 
 
@@ -333,20 +309,5 @@ auto quicksort_attrPoint3f(vector<attrPoint3f>& vec, int start, int end) {
   quicksort_attrPoint3f(vec, p + 1, end);    // Sorting the right part
 }
 //
-
-
-void bubbleSort_ap3f(vector<attrPoint3f> x, int size) {
-  //from https://cplusplus.com/forum/beginner/12731/
-  bool exchanges;
-  do {
-        exchanges = false;  // assume no exchanges
-        for (int i=0; i<size-1; i++) {
-            if (x[i].coords.y > x[i+1].coords.y) {
-        auto temp = x[i]; x[i] = x[i+1]; x[i+1] = temp;
-        exchanges = true;  // after exchange, must look again
-            }
-        }
-  } while (exchanges);
-}
 }  // namespace yocto
 

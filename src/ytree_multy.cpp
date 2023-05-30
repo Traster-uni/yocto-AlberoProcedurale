@@ -9,8 +9,6 @@
 #include <yocto/yocto_shape.h>
 #include <yocto/yocto_trace.h>
 #include <yocto/yocto_modelio.h>
-
-#include <stdlib.h>
 #include <unordered_set>
 
 #include "treeToolSet.cpp"
@@ -21,10 +19,10 @@ using namespace std::string_literals;
 // main function
 void run(const vector<string>& args) {
   // parameters
-//  auto scenename   = "scene.json"s;
-   auto scenename = R"(C:\yocto-AlberoProcedurale\tests\tests_assets\node_crown\node_crown_test.json)"s;
+//  auto scenename = R"(C:\yocto-AlberoProcedurale\tests\tests_assets\node_crown\node_crown_test.json)"s;
 //  auto scenename = "/home/tommasomarialopedote/Computer-graphics-project/yocto-AlberoProcedurale/tests/tests_assets/node_crown/node_crown_test.json"s;
 //  auto scenename = "/home/michi/Desktop/UNI/CG/yocto-AlberoProcedurale/tests/tests_assets/node_crown/node_crown_test.json"s;
+  auto scenename   = "scene.json"s;
   auto outname     = "point_image.png"s;
   auto paramsname  = ""s;
   auto interactive = true;
@@ -35,14 +33,16 @@ void run(const vector<string>& args) {
   auto savebatch   = false;
   auto dumpname    = ""s;
   //custom
-  auto rnd_input = false;
-//  auto num_attrPoint = ""s;
-  auto num_attrPoint = "1000"s;
-//  auto attr_range = ""s;
-  auto attr_range = "0.25"s;
-//  auto kill_range = ""s;
-  auto kill_range = "0.2"s;
-  auto treeType = ""s;
+  auto rnd_input = true;
+  auto num_attrPoint = ""s;
+//  auto num_attrPoint = "2000"s;
+  auto attr_range = ""s;
+//  auto attr_range = "0.4"s;
+  auto kill_range = ""s;
+//  auto kill_range = "0.3"s;
+  auto in_depth = ""s;
+//  auto in_depth = "70"s;
+
 
   auto params      = trace_params{};
   // parse command line
@@ -71,9 +71,9 @@ void run(const vector<string>& args) {
   // custom
   add_option(cli, "random", rnd_input, "set true to generate a random seed for attraction points");
   add_option(cli, "numattr", num_attrPoint, "define the number of attraction point to generate");
-  add_option(cli, "tree", treeType, "define type of tree");
   add_option(cli, "attr_range", attr_range, "define an attraction range for a branch");
   add_option(cli, "kill_range", kill_range, "define killing range for attraction points");
+  add_option(cli, "depth", in_depth, "define max depth for the tree growth");
   //
   parse_cli(cli, args);
   // load config
@@ -97,46 +97,8 @@ void run(const vector<string>& args) {
   auto scene = load_scene(scenename);  // carico la shape
   print_info("load scene: {}", elapsed_formatted(timer));
 
-  //////////////////////////////////////////////////////////////////////////////
-  //  UTILS
-  //  To print any object from vectors
-  //  int i = 0;
-  //  while (i < scene.instance_names.size()) {
-  //    print_info("instaces_name: {}", scene.instance_names[i]);
-  //    i++;
-  //  }
-  //  void *operator new(size_t size){
-  //    void *ptr = malloc(size);
-  //    return ptr;
-  //  }
-  //  void operator delete(void *ptr){
-  //    free(ptr);
-  //  }
-  //////////////////////////////////////////////////////////////////////////////
-  /* individua la mash del punto e salvala in una var
-   * individua le coordinate relative a tale punto e salvale in una var
-   * per i che va da 1 a 10
-   *    incrementa il valore di z delle coordinate della mash
-   *    crea una nuova instanza del modello usato come punto
-   *    inserisci le  coordinate nella relativa struttura dati
-   *
-   *    frame3f frame
-   *    int     shape
-   *    int     material
-   *
-   */
-  /*
-   * Procedura di crezione istanze:
-   *  1) Caricare modelli e texture nel .json e individuare la posizione al interno dell'array;
-   *  2) Creare una instanza standard di instance_data{} con un fram3f di default e i corretti indici di modelli e texture;
-   *  3) Itera sull'array dei vettori
-   *        Copia la instanza standard;
-   *        Modifica l'instanza standard con il vettore posizione corretto (scene.frame.o);
-   *        Inserisci la nuova istanza nella scena;
-   */
-
   // INSTANCES
-  attractionPoints crown; //stack?
+  attractionPoints crown;
   vector<Branch> treeArray; // a collection of all branches in the tree
   // random generator
   random_device rdmGenerator;
@@ -144,16 +106,17 @@ void run(const vector<string>& args) {
   // string conversions
   crown.radiusInfluence = stof(attr_range);
   crown.killDistance = stof(kill_range);
+  auto depth = stoi(in_depth);
   // GENERATE THE CROWN OF ATTRACTION POINT
   // seeding
   int seedrnd = randomSeed(rnd_input, 0, 100000, rdm);
   print_info("uniform seeding: {}, no random seed -> 58380", seedrnd);
   // generation
-  crown.attractionPointsArray = populateSphere(stoi(num_attrPoint), seedrnd, rdm);
+  crown.attractionPointsArray = populateSphere(stoi(num_attrPoint), rdm);
   // sort attraction points vertically
-  bubbleSort(crown.attractionPointsArray, crown.attractionPointsArray.size());
+  quicksort_attrPoint3f(crown.attractionPointsArray, 0, crown.attractionPointsArray.size()-1);
   // l'attraction Point piu' basso.
-  vec3f minVec3f = crown.attractionPointsArray[0];
+  vec3f minVec3f = crown.attractionPointsArray[0].coords;
 
   // modeling for attrPoints
   float ModelScale = 0.4;
@@ -175,25 +138,27 @@ void run(const vector<string>& args) {
   vec3f trunkGrowthDir = {0, 0.5, 0};
   auto trunkBranch = Branch{
       floorPos,
-      floorPos + trunkGrowthDir,
-      trunkGrowthDir,
+      floorPos + (trunkGrowthDir * 0.2),
+      trunkGrowthDir * 0.2,
       0.2,
       0,
       vector<Branch>(),
       vector<attrPoint3f>(),
+      4,
       2,
-      1,
-      70,
-      0.1,
+      depth,
       false,
-      false
+      false,
+      true
       };
 
   treeArray.push_back(trunkBranch);
   while (checkHeight(trunkBranch, minVec3f)){
     trunkBranch = growChild(trunkBranch, trunkGrowthDir, rdm);
+    depth--;
     trunkBranch.branch = false;
     trunkBranch.fertile = false;
+    trunkBranch.trunk = true;
     treeArray.push_back(trunkBranch);
 
     // MODELS
@@ -201,55 +166,56 @@ void run(const vector<string>& args) {
     b_instance.frame.o = trunkBranch._start;
     scene.instances.push_back(b_instance);
   }
+  // stops growing trunk here
   // setup to grow crown
   treeArray[treeArray.size()-1].fertile = true;   // first branch is forcebly fertile;
   treeArray[treeArray.size()-1].branch = true;    // first branch is now a branch
+  treeArray[treeArray.size()-1].trunk = false;
+  // initialize set to check which branch is still capable of growing other branches.
+  std::unordered_set<Branch, BranchHash> fertileSet;
+  fertileSet.insert(treeArray[treeArray.size()-1]);
 
-  std::unordered_set<Branch*> fertileSet = { &treeArray[treeArray.size()-1] };
-  while(!fertileSet.empty()){
-    for (Branch& current : treeArray) {
-      if (current.branch) {
-        findInfluenceSet(current, crown);
-        if (isFertile(current)) {
-          current.fertile = true;
-          fertileSet.insert(&current);
-        } else {
-          current.fertile = false;
-          fertileSet.erase(&current);
-        }
+
+  // starts colonization algorithm from here.
+  while (!fertileSet.empty() && depth > 0) {
+    for (int i = 0; i < treeArray.size() && depth > 0; i++) {
+      if (!treeArray[i].trunk) {
+        findInfluenceSet(treeArray[i], crown);
       }
     }
-    for (Branch& current: treeArray){
-      if (current.fertile) {
+
+    for (int j = 0; j < treeArray.size() && depth > 0; j++) {
+      if (!treeArray[j].trunk) {
+        auto current = treeArray[j];
         // MODELS
         auto b_instance    = branchInstanceData;
-        b_instance.frame.o = current._start;
+        b_instance.frame.o = treeArray[j]._start;
         scene.instances.push_back(b_instance);
         //
-
-        auto dir = computeDirection(current, seedrnd);
-        if (current.children.size() < current.minBranches) {  // TODO:codice ripetuto? perché?
-          Branch* child = growChild(treeArray[i], dir, rdm);
-          treeArray.push_back(child);
-        } else if (current.branch && current.children.size() < current.->maxBranches) {  // qui
-          Branch* child = growChild(treeArray[i], dir, rdm);
-          treeArray.push_back(child);
+        if (isFertile(treeArray[j])) {
+          treeArray[j].fertile = true;
+          fertileSet.insert(treeArray[j]);
+          treeArray[j]._direction = computeDirection(treeArray[j], rdm);
+          if (checkChild(treeArray[j])) {
+            auto b = growChild(treeArray[j], treeArray[j]._direction, rdm);
+            treeArray.push_back(b);
+            deleteAttractionPoints(treeArray[j], crown);
+            clearInfluenceSet(treeArray[j]);
+          } else {
+            depth--;
+          }
+        } else {
+          treeArray[j].fertile = false;
+          fertileSet.erase(treeArray[j]);
         }
-//        if ((current.branch && current.children.size() < current.maxBranches) || \
-//            (current.children.size() < current.minBranches)){
-//          Branch child = growChild(current, dir, rdm);
-//          child.trunk  = false;
-//          treeArray.push_back(child);
-//        }
-        //TODO: DEBUG FOR INFINITE LOOP
-        deleteAttractionPoints(current, crown, floorPos);
-        clearInfluenceSet(treeArray[i]);
       }
     }
   }
+  // end colonization algorithm here
+
 
   vector<vec3f> branchEndPoints;
-  for ( auto b : treeArray) {
+  for ( auto& b : treeArray) {
     branchEndPoints.push_back(b._start);
     branchEndPoints.push_back(b._end);
   }
@@ -263,14 +229,12 @@ void run(const vector<string>& args) {
 
   // SPHERES MODELS
   for (auto& s : crown.attractionPointsArray) {
-    if ( s != floorPos) {
+    if ( s.coords != floorPos) {
     auto aP_instance    = attractionPointInstance;
-    aP_instance.frame.o = s;
+    aP_instance.frame.o = s.coords;
     scene.instances.push_back(aP_instance);
     }
   }
-  // delete crown.attractionPointsPtr;
-
   //////////////////////////////////////////////////////////////////////////////
 
   // build bvh
