@@ -42,7 +42,7 @@ void run(const vector<string>& args) {
 //  auto kill_range = "0.3"s;
   auto in_depth = ""s;
 //  auto in_depth = "70"s;
-
+  auto in_br_length = ""s;
 
   auto params      = trace_params{};
   // parse command line
@@ -74,6 +74,7 @@ void run(const vector<string>& args) {
   add_option(cli, "attr_range", attr_range, "define an attraction range for a branch");
   add_option(cli, "kill_range", kill_range, "define killing range for attraction points");
   add_option(cli, "depth", in_depth, "define max depth for the tree growth");
+  add_option(cli, "length", in_br_length, "define the length of each branch");
   //
   parse_cli(cli, args);
   // load config
@@ -135,16 +136,17 @@ void run(const vector<string>& args) {
                                                   floorPos}, 2, 2};
 
   // trunk instance and growth direction
+  auto br_length = stof(in_br_length);
   vec3f trunkGrowthDir = {0, 0.5, 0};
   auto trunkBranch = Branch{
       floorPos,
-      floorPos + (trunkGrowthDir * 0.2),
-      trunkGrowthDir * 0.2,
-      0.2,
+      floorPos + (trunkGrowthDir * br_length),
+      trunkGrowthDir * br_length,
+      br_length,
       0,
       vector<Branch>(),
       vector<attrPoint3f>(),
-      4,
+      3,
       2,
       depth,
       false,
@@ -219,7 +221,7 @@ void run(const vector<string>& args) {
     branchEndPoints.push_back(b._start);
     branchEndPoints.push_back(b._end);
   }
-  shape_data cylinders = lines_to_cylinders(branchEndPoints);
+  shape_data cylinders = lines_to_cylinders(branchEndPoints, 32, 0.01f);
   scene.shapes.push_back(cylinders);
   instance_data cylinderInstances = {{{1,0,0},
                                                 {0,1,0},

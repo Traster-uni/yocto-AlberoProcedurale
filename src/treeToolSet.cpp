@@ -211,7 +211,7 @@ void findInfluenceSet(Branch& current, attractionPoints& treeCrown) {
 vec3f computeDirection(Branch& currBranch, mt19937& generator){
   vec3f newDir = {0, 0, 0};
   vec3f num;
-  uniform_real_distribution<float> floatDistribution(-0.2, 0.2);
+  uniform_real_distribution<float> floatDistribution(-0.5, 0.5);
   vec3f rvc3f = {floatDistribution(generator), floatDistribution(generator), floatDistribution(generator)};
   float denom;
   for (auto& ip : currBranch.influencePoints) {
