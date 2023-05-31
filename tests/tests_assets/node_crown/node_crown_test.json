@@ -35,7 +35,7 @@
     },
     {
       "name": "tree_tex",
-      "uri": "textures/tree_tex.png"
+      "uri": "textures/bark_uniform.jpg"
     },
     {
       "name": "sky",
@@ -64,15 +64,15 @@
       "type": "matte"
     },
     {
-      "name": "treeNode",
+      "name": "branch",
       "color": [1, 1, 1],
       "color_tex": 2,
       "type": "matte"
     },
     {
-      "name": "cylinder",
+      "name": "leaf",
       "color": [1, 1, 1],
-      "color_tex": 5,
+      "color_tex": 1,
       "type": "matte"
     }
   ],
@@ -88,6 +88,10 @@
     {
       "name": "tree_point",
       "uri": "shapes/tree_point.ply"
+    },
+    {
+      "name": "leaf",
+      "uri": "shapes/leaf.ply"
     }
   ],
   "instances": [

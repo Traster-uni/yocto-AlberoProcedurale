@@ -1,0 +1,55 @@
+fertileSet = {}
+for branch in treeArray and depth >0:
+	if branch is not TRUNK:
+		if branch is FERTILE:
+			branch.FERTILE = true
+			findinfluenceSet(branch)
+			if branch.influencePoints is empty:
+				branch.FERTILE = false
+				fertileSet.erese(branch)
+			else:
+				fertileSet.insert(branch)
+		else:
+			branch.FERTILE = false
+			fertileSet.erese(branch)
+
+for branch in treeArray:
+	if branch is FERTILE:
+		<carica modelli>
+		if branch.influencePoints is not empty:
+			computeDirction(branch)
+			
+			if checkFilgli(branch) is True:
+				growchild(branch)
+				depth--
+				treeArray.append(child)
+				fertileSet.inset(child) <-- errore
+		
+		deleteAttracitionPoints(branch)
+		clearInfluenceSet(branch)
+
+---------------------------------------------
+			
+for branch in treeArray and depth>0:
+	if branch is not TRUNK:
+		findinfluenceSet(branch)
+		computeDirction(branch)
+
+for branch in treeArray and depth>0:
+	if branch is not TRUNK:
+		if isFertile(branch) == True:
+			branch.fertile = True
+			fertileSet.insert(branch)
+			
+			if (checkFilgli(branch) is True):
+				growchild(branch)
+				deleteAttracitionPoints(branch)
+				clearInfluenceSet(branch)
+				treeArray.append(child)
+			else:
+				depth--
+			
+		else:
+			branch.fertile = False
+			fertileSet.erese(branch)
+	

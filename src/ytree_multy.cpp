@@ -226,17 +226,32 @@ void run(const vector<string>& args) {
   instance_data cylinderInstances = {{{1,0,0},
                                                 {0,1,0},
                                                 {0,0,1},
-                                            {0,0,0}}, 3, 1};
+                                            {0,0,0}}, 4, 2};
   scene.instances.push_back(cylinderInstances);
 
-  // SPHERES MODELS
-  for (auto& s : crown.attractionPointsArray) {
-    if ( s.coords != floorPos) {
-    auto aP_instance    = attractionPointInstance;
-    aP_instance.frame.o = s.coords;
-    scene.instances.push_back(aP_instance);
+  instance_data leaf_instance = {{{1,0,0},
+                                         {0,1,0},
+                                         {0,0,1},
+                                         {0,0,0}}, 3, 3};
+  for (auto& lf : treeArray){
+    if (!lf.fertile && !lf.trunk){
+      auto l = leaf_instance;
+      l.frame.o = lf._end;
+      scene.instances.push_back(l);
     }
   }
+
+  //TODO: IMPOSTA RANDOM VECTOR PER ORIENTAMENT CASUALE FOGLIE
+  //TODO: TROPPE FOGLIE, SOLO VERSO LA FINE
+
+  // SPHERES MODELS
+//  for (auto& s : crown.attractionPointsArray) {
+//    if ( s.coords != floorPos) {
+//    auto aP_instance    = attractionPointInstance;
+//    aP_instance.frame.o = s.coords;
+//    scene.instances.push_back(aP_instance);
+//    }
+//  }
   //////////////////////////////////////////////////////////////////////////////
 
   // build bvh
